@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import sys
+import os
 
 
 def configure_event_loop_policy() -> None:
     """Usa SelectorEventLoop en Windows para compatibilidad con psycopg async."""
-    if sys.platform != "win32":
+    if os.name != "nt":
         return
 
-    from asyncio.windows_events import WindowsSelectorEventLoopPolicy
-
-    asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
-        WindowsSelectorEventLoopPolicy()
-    )
+    policy_type = getattr(asyncio, "WindowsSelectorEventLoopPolicy", None)
+    if policy_type is not None:
+        asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
+            policy_type()
+        )
