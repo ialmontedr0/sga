@@ -4601,7 +4601,7 @@ contratos existentes sin migración, aviso y pruebas.
 
 ## 19. Runbook de ejecución de B0
 
-Este runbook describe el orden exacto para materializar la fase. **Fue ejecutado y verificado localmente al cerrar B0**; cada paso incluye verificación. El remoto `origin/main`, el CI de GitHub Actions y la etiqueta `v0.1.0` están publicados. La etiqueta existente apunta al commit inicial `c5b53d6`; la documentación se incorpora después y requiere una decisión explícita sobre el etiquetado final.
+Este runbook describe el orden exacto para materializar la fase. **Fue ejecutado y verificado localmente al cerrar B0**; cada paso incluye verificación. El remoto `origin/main`, el CI de GitHub Actions y las etiquetas están publicados. `v0.1.0` conserva el commit inicial `c5b53d6`; `v0.1.1` cierra B0 sobre el commit final que incluye código y documentación.
 
 ### Paso 0. Confirmar estado del repositorio
 
@@ -4884,7 +4884,7 @@ Riesgos críticos requieren decisión humana antes de continuar. No se acepta un
 - [x] Pendientes de validación registrados.
 - [x] Sin secretos, datos reales ni artefactos.
 - [x] Primer commit `c5b53d6` y remoto `origin/main` publicados.
-- [ ] Etiqueta final verificada: `v0.1.0` existe, pero apunta a `c5b53d6` y no incluye la documentación posterior.
+- [x] Etiqueta final `v0.1.1` publicada sobre el commit de cierre; `v0.1.0` se conserva como referencia inicial.
 
 ### 22.2 Traspaso a B1
 
