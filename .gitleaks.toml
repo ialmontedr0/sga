@@ -1,0 +1,14 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Excepciones controladas para ejemplos sin secretos reales"
+paths = [
+    '''^docs/.*\.md$''',
+    '''^backend/\.env\.example$''',
+    '''^backend/tests/.*''',
+]
+regexes = [
+    '''CAMBIAR_CONTRASENA_DEV''',
+    '''SGA_SECRET_KEY=\s*$'''
+]

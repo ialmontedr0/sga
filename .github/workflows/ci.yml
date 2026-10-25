@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Python 3.12)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: sga
+          POSTGRES_PASSWORD: sga_ci
+          POSTGRES_DB: sga_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sga -d sga_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      SGA_ENVIRONMENT: testing
+      SGA_DEBUG: "false"
+      SGA_SECRET_KEY: ci-secret-key-with-at-least-thirty-two-characters
+      SGA_DATABASE_URL: postgresql+psycopg://sga:sga_ci@localhost:5432/sga_test
+      SGA_REDIS_URL: redis://localhost:6379/15
+      SGA_CORS_ORIGINS: http://localhost:5173
+      SGA_TRUSTED_HOSTS: localhost,127.0.0.1,testserver
+      SGA_DOCS_ENABLED: "true"
+      SGA_LOG_JSON: "false"
+      SGA_SESSION_COOKIE_SECURE: "false"
+      RUN_INTEGRATION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Instalar Python 3.12
+        run: uv python install 3.12
+
+      - name: Instalar dependencias
+        run: uv sync --frozen
+
+      - name: Verificar formato
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Tipado
+        run: uv run mypy src tests
+
+      - name: Pruebas
+        run: uv run pytest
