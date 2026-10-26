@@ -21,7 +21,7 @@ Copy-Item .env.example .env
 ## Comandos
 
 ```powershell
-uv run uvicorn judicial_archive.asgi:app --reload
+uv run uvicorn judicial_archive.asgi:app --reload --loop judicial_archive.core.runtime:selector_loop_factory
 uv run arq judicial_archive.tasks.worker.WorkerSettings
 uv run alembic current
 uv run alembic upgrade head
@@ -38,8 +38,13 @@ Con PostgreSQL y Redis disponibles:
 
 ```powershell
 $env:RUN_INTEGRATION = "1"
-uv run pytest tests/integration
+$env:TEST_DATABASE_URL = "postgresql+psycopg://usuario:clave@localhost:5432/sga_test"
+$env:TEST_REDIS_URL = "redis://localhost:6379/15"
+uv run pytest tests/integration -q --no-cov -n 0
 ```
+
+Usar un usuario con permisos sobre `public` en `sga_test`. No ejecutar en
+paralelo contra la misma base ni imprimir credenciales.
 
 ## Documentación
 
@@ -54,5 +59,7 @@ uv run pytest tests/integration
 
 ## Estado
 
-B0 implementada como base técnica. No contiene todavía modelos de negocio,
-migraciones de dominio ni endpoints funcionales.
+B3 completada: configuración, errores uniformes, logging, middleware,
+salud, paginación y OpenAPI común. Incluye el esquema persistente de B2 y
+sus migraciones; todavía no hay endpoints de negocio ni autenticación.
+Validación: 130 pruebas, cobertura global 95,03 %, `core` 95 %.

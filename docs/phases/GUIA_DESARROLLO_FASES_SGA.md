@@ -700,7 +700,8 @@ Construir una base de datos consistente y migrable.
 -   Suite completa: 87 passed; cobertura 92.54 % (umbral 75).
 -   Limitaciones: render Mermaid no ejecutado (`mmdc` ausente); no se
     realizó ensayo de restauración completo.
--   Sin commit ni push.
+-   Commit: `7d6aa4f chore(backend): Base de datos, modelos SQLAlchemy y
+    migraciones Alembic`.
 
 ## Estado de la fase: Completada
 ------------------------------------------------------------------------
@@ -744,7 +745,15 @@ Crear la infraestructura común de FastAPI para todos los módulos.
     disponibilidad de dependencias.
 -   OpenAPI representa los contratos reales.
 
-## Estado de la fase: Pendiente
+## Estado de la fase: Completada
+
+Evidencia (2026-10-26): 130 pruebas aprobadas (52 unitarias, 32 de API y
+46 de integración), cobertura global 95,03 % y 95 % en `core`; Ruff,
+formato y mypy sin errores; `alembic check` sin operaciones nuevas; smoke
+local con PostgreSQL y Redis en `ok` y rechazo de host no permitido con
+`400 bad_request`. Detalle completo en `docs/phases/phaseB3_guide.md`,
+sección 20.
+
 ------------------------------------------------------------------------
 
 Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:

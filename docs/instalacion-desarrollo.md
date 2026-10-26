@@ -82,8 +82,11 @@ uv run alembic current
 ## 8. Ejecutar
 
 ```powershell
-uv run uvicorn judicial_archive.asgi:app --reload
+uv run uvicorn judicial_archive.asgi:app --reload --loop judicial_archive.core.runtime:selector_loop_factory
 ```
+
+En Windows debe usarse el loop Selector para psycopg async. El script
+`.\scripts\dev.ps1` ya aplica esa configuración.
 
 - `http://127.0.0.1:8000/api/v1/health/live`
 - `http://127.0.0.1:8000/api/v1/health/ready`
@@ -117,6 +120,10 @@ uv run pytest
 - Pylance marca `Expected no type arguments for class "Redis"`: redis-py 5.x no es genérico; usar `Redis`, no `Redis[str]`.
 - Pylance marca `ORJSONResponse is deprecated`: usar `JSONResponse`; FastAPI 0.161 serializa con Pydantic.
 - Pylance marca `Settings()` con argumentos faltantes: usar `# pyright: ignore[reportCallIssue]`, no `# type: ignore`.
+- `InterfaceError` en readiness con PostgreSQL en Windows: iniciar
+  Uvicorn con `--loop judicial_archive.core.runtime:selector_loop_factory`
+  o usar `.\scripts\dev.ps1`; el loop Proactor no es compatible con
+  psycopg async.
 - Alembic falla con `ProactorEventLoop`: usar el engine síncrono de `env.py` o `configure_event_loop_policy()` en Windows.
 - ARQ falla con `at least one function or cron_job must be registered`: registrar al menos `healthcheck`.
 - PowerShell bloquea scripts: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.

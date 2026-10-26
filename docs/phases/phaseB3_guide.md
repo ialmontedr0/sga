@@ -182,7 +182,7 @@ los límites de cuerpo, paginación y tiempo que no dependen de identidad.
 
 ### 1.5 Criterios de aceptación
 
-1. `uv run uvicorn judicial_archive.asgi:app` inicia con configuración válida.
+1. `uv run uvicorn judicial_archive.asgi:app --loop judicial_archive.core.runtime:selector_loop_factory` inicia con configuración válida.
 2. Una configuración inválida falla al arrancar sin revelar secretos.
 3. `GET /api/v1/health/live` responde `200` sin consultar dependencias.
 4. `GET /api/v1/health/ready` responde `200` solo si PostgreSQL y Redis están
@@ -244,9 +244,10 @@ los límites de cuerpo, paginación y tiempo que no dependen de identidad.
 
 | Elemento | Estado |
 |---|---|
-| Último commit | `78a1701 chore(backend): validaciones en la fase B1` |
-| B2 | Implementada y verificada; sin commit |
-| Suite base | 87 pruebas pasando; cobertura 92.54 % |
+| Último commit | `7d6aa4f chore(backend): Base de datos, modelos SQLAlchemy y migraciones Alembic` |
+| B2 | Implementada, verificada y commiteada en `7d6aa4f` |
+| B3 | Implementada y verificada; pendiente de commit |
+| Suite actual | 130 pruebas pasando; cobertura 95,03 % |
 | `FAIL_UNDER` | 75 |
 | `SGA_*` | Prefijo único de configuración |
 | Python | `>=3.12,<3.13` |
@@ -254,7 +255,7 @@ los límites de cuerpo, paginación y tiempo que no dependen de identidad.
 | Pydantic | `>=2.14,<3` |
 | Structlog | `>=26.1,<27` |
 | PostgreSQL driver | psycopg 3 |
-| Estado Git | Cambios B2 pendientes de revisión; no hacer commit sin autorización |
+| Estado Git | Cambios B3 pendientes de revisión; no hacer commit sin autorización |
 
 ### 2.3 Comprobación inicial
 
@@ -691,7 +692,9 @@ La aplicación no debe arrancar en producción si:
 
 Los errores de validación de Pydantic no deben incluir el valor de
 `secret_key` ni la contraseña del DSN en la salida de arranque. No imprimir
-`Settings` completo.
+`Settings` completo. `get_settings()` captura `ValidationError` y lanza un
+`RuntimeError` con solo campo y mensaje, usando `from None` para no encadenar la
+excepción original con los valores de entrada.
 
 ### 5.5 Pruebas asociadas
 
@@ -704,7 +707,8 @@ Los errores de validación de Pydantic no deben incluir el valor de
 - cada configuración insegura de producción rechazada;
 - origen CORS con esquema inválido rechazado;
 - origen CORS con `/` final rechazado;
-- tamaño de cuerpo fuera de rango rechazado.
+- tamaño de cuerpo fuera de rango rechazado;
+- error de arranque sin secreto ni contraseña del DSN.
 
 ---
 
@@ -731,6 +735,11 @@ def configure_event_loop_policy() -> None:
         asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
             policy_type()
         )
+
+
+def selector_loop_factory() -> asyncio.AbstractEventLoop:
+    """Fabrica de loop para uvicorn en Windows; psycopg no usa Proactor."""
+    return asyncio.SelectorEventLoop()
 ```
 
 Debe ejecutarse antes de crear el engine de SQLAlchemy. En `main.py` se llama a
@@ -751,7 +760,6 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from judicial_archive import __version__
 from judicial_archive.api.v1.router import api_router
@@ -761,6 +769,7 @@ from judicial_archive.core.logging import configure_logging
 from judicial_archive.core.middleware import (
     RequestBodyLimitMiddleware,
     RequestContextMiddleware,
+    TrustedHostMiddleware,
 )
 from judicial_archive.core.runtime import configure_event_loop_policy
 from judicial_archive.db.session import Database
@@ -880,8 +889,12 @@ Uso local:
 
 ```powershell
 Set-Location backend
-uv run uvicorn judicial_archive.asgi:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn judicial_archive.asgi:app --reload --host 127.0.0.1 --port 8000 --loop judicial_archive.core.runtime:selector_loop_factory
 ```
+
+En Windows el loop Selector es obligatorio para psycopg async. Uvicorn 0.54
+crea el loop antes de importar la app, por lo que cambiar la política dentro de
+`main.py` no basta; se debe indicar la fábrica con `--loop`.
 
 ### 6.4 `api/deps.py`
 
@@ -1662,6 +1675,12 @@ respuestas.
 `TrustedHostMiddleware` rechaza un `Host` no permitido con `400`. En producción
 debe contener solo dominios reales, sin `*` y sin `testserver`. Detrás de un
 proxy, el proxy debe preservar `Host` y no permitir que el cliente lo falsifique.
+
+La implementación propia en `core/middleware.py` conserva la validación de
+Starlette, pero devuelve el sobre común de errores (`bad_request`) con
+`request_id`; la respuesta de texto plano de Starlette no cumple el contrato.
+Los errores de host conservan las cabeceras CORS porque `CORSMiddleware` queda
+por fuera.
 
 ### 10.3 Documentación
 
@@ -2780,7 +2799,7 @@ que el equipo confirme lo contrario.
 
 ```powershell
 Set-Location backend
-uv run uvicorn judicial_archive.asgi:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn judicial_archive.asgi:app --reload --host 127.0.0.1 --port 8000 --loop judicial_archive.core.runtime:selector_loop_factory
 ```
 
 Comprobaciones:
@@ -2810,64 +2829,64 @@ No hacer commit ni push en B3 sin autorización explícita.
 
 ### 17.1 Configuración
 
-- [ ] `max_request_body_bytes` existe con defecto 1 MiB y rango válido.
-- [ ] Producción exige `debug=false`.
-- [ ] Producción exige `docs_enabled=false`.
-- [ ] Producción exige `log_json=true`.
-- [ ] Producción exige `session_cookie_secure=true`.
-- [ ] Producción rechaza `*` y `testserver` en hosts.
-- [ ] Orígenes CORS se validan.
-- [ ] Las listas se parsean sin espacios vacíos.
-- [ ] Los errores de validación no imprimen secretos.
+- [x] `max_request_body_bytes` existe con defecto 1 MiB y rango válido.
+- [x] Producción exige `debug=false`.
+- [x] Producción exige `docs_enabled=false`.
+- [x] Producción exige `log_json=true`.
+- [x] Producción exige `session_cookie_secure=true`.
+- [x] Producción rechaza `*` y `testserver` en hosts.
+- [x] Orígenes CORS se validan.
+- [x] Las listas se parsean sin espacios vacíos.
+- [x] Los errores de validación no imprimen secretos.
 
 ### 17.2 Aplicación
 
-- [ ] `create_app` acepta `Settings` y `configure_logs`.
-- [ ] Lifespan crea y cierra PostgreSQL/Redis.
-- [ ] `RequestContextMiddleware` es el más externo.
-- [ ] CORS está dentro del request-id.
-- [ ] `TrustedHostMiddleware` está configurado.
-- [ ] `RequestBodyLimitMiddleware` está activo.
-- [ ] `asgi.py` exporta `app`.
-- [ ] Las dependencias no hacen commit automático.
+- [x] `create_app` acepta `Settings` y `configure_logs`.
+- [x] Lifespan crea y cierra PostgreSQL/Redis.
+- [x] `RequestContextMiddleware` es el más externo.
+- [x] CORS está dentro del request-id.
+- [x] `TrustedHostMiddleware` está configurado.
+- [x] `RequestBodyLimitMiddleware` está activo.
+- [x] `asgi.py` exporta `app`.
+- [x] Las dependencias no hacen commit automático.
 
 ### 17.3 Logging y errores
 
-- [ ] Logging JSON en producción.
-- [ ] Logging legible en desarrollo.
-- [ ] `request_id` se propaga.
-- [ ] Redacción recursiva de secretos.
-- [ ] No se duplican handlers de uvicorn.
-- [ ] Todos los errores usan el sobre común.
-- [ ] `413` está en el catálogo y mapeado.
-- [ ] Los `500` no exponen detalles internos.
-- [ ] Los errores de validación no reenvían valores.
+- [x] Logging JSON en producción.
+- [x] Logging legible en desarrollo.
+- [x] `request_id` se propaga.
+- [x] Redacción recursiva de secretos.
+- [x] No se duplican handlers de uvicorn.
+- [x] Todos los errores usan el sobre común.
+- [x] `413` está en el catálogo y mapeado.
+- [x] Los `500` no exponen detalles internos.
+- [x] Los errores de validación no reenvían valores.
 
 ### 17.4 API
 
-- [ ] Liveness no consulta dependencias.
-- [ ] Readiness consulta PostgreSQL y Redis.
-- [ ] Readiness devuelve `503` si falla una dependencia.
-- [ ] Los health checks no revelan secretos.
-- [ ] Paginación limitada a 100.
-- [ ] Ordenamiento validado contra campos permitidos.
-- [ ] No existe un DSL genérico de filtros.
-- [ ] OpenAPI solo documenta rutas reales.
-- [ ] Docs se deshabilitan con la configuración.
-- [ ] No se implementa rate limiting en B3.
+- [x] Liveness no consulta dependencias.
+- [x] Readiness consulta PostgreSQL y Redis.
+- [x] Readiness devuelve `503` si falla una dependencia.
+- [x] Los health checks no revelan secretos.
+- [x] Paginación limitada a 100.
+- [x] Ordenamiento validado contra campos permitidos.
+- [x] No existe un DSL genérico de filtros.
+- [x] OpenAPI solo documenta rutas reales.
+- [x] Docs se deshabilitan con la configuración.
+- [x] No se implementa rate limiting en B3.
 
 ### 17.5 Pruebas y calidad
 
-- [ ] `ruff check` pasa.
-- [ ] `ruff format --check` pasa.
-- [ ] `mypy src` pasa.
-- [ ] `pytest tests/unit` pasa.
-- [ ] `pytest tests/api` pasa.
-- [ ] `pytest tests` pasa o se documenta la exclusión de integración.
-- [ ] Cobertura global ≥ 75 %.
-- [ ] Cobertura de `core` ≥ 90 %.
-- [ ] `alembic check` sin cambios inesperados.
-- [ ] `git diff --check` sin errores.
+- [x] `ruff check` pasa.
+- [x] `ruff format --check` pasa.
+- [x] `mypy src tests` pasa.
+- [x] `pytest tests/unit` pasa.
+- [x] `pytest tests/api` pasa.
+- [x] `pytest tests` pasa con integración habilitada.
+- [x] Cobertura global ≥ 75 %.
+- [x] Cobertura de `core` ≥ 90 %.
+- [x] `alembic check` sin cambios inesperados.
+- [x] `git diff --check` sin errores.
 
 ---
 
@@ -2952,27 +2971,53 @@ evidencia.
 
 | Comprobación | Comando | Resultado | Fecha |
 |---|---|---|---|
-| Ruff lint | `uv run ruff check .` | Pendiente | |
-| Ruff format | `uv run ruff format --check .` | Pendiente | |
-| Mypy | `uv run mypy src` | Pendiente | |
-| Unitarias | `uv run pytest tests/unit -q --no-cov` | Pendiente | |
-| API | `uv run pytest tests/api -q --no-cov` | Pendiente | |
-| Suite completa | `uv run pytest tests -q` | Pendiente | |
-| Cobertura | `uv run pytest tests -q` | Pendiente | |
-| Alembic | `uv run alembic check` | Pendiente | |
-| Diff | `git diff --check` | Pendiente | |
+| Ruff lint | `uv run ruff check src tests` | Pasa | 2026-10-26 |
+| Ruff format | `uv run ruff format --check src tests` | 85 archivos ya formateados | 2026-10-26 |
+| Mypy | `uv run mypy src tests` | Sin errores en 85 archivos | 2026-10-26 |
+| Unitarias | `uv run pytest tests/unit -q --no-cov -n 0` | 52 passed | 2026-10-26 |
+| API | `uv run pytest tests/api -q --no-cov -n 0` | 32 passed | 2026-10-26 |
+| Integración | `uv run pytest tests/integration -q --no-cov -n 0` con entorno de prueba | 46 passed | 2026-10-26 |
+| Suite completa | `uv run pytest tests -q -n 0` con integración | 130 passed | 2026-10-26 |
+| Cobertura | misma suite completa | 95,03 % global; 95 % en `core` | 2026-10-26 |
+| Alembic | `uv run alembic check` | Sin operaciones nuevas | 2026-10-26 |
+| Pre-commit | `uv run pre-commit run --all-files` | Todos los hooks pasan | 2026-10-26 |
+| Diff | `git diff --check` | Sin errores | 2026-10-26 |
+| Smoke local | Uvicorn con PostgreSQL/Redis y `--loop ...` | `live=ok`, `ready=200`, `db=ok`, `redis=ok`; host no permitido `400 bad_request` | 2026-10-26 |
 
-### 20.1 Evidencia esperada
+### 20.1 Evidencia
 
-- salida de cada comando;
-- número de pruebas aprobadas;
-- porcentaje de cobertura;
-- lista de pruebas de integración omitidas, si aplica;
-- diff resumido;
-- confirmación de que no se commitearon secretos.
+- Ruff lint y formato sin hallazgos; mypy sin errores en `src` y `tests`.
+- 52 pruebas unitarias, 32 de API y 46 de integración: 130 aprobadas.
+- Cobertura global 95,03 %; cobertura de `core` 95 %.
+- `alembic check`: “No new upgrade operations detected.”
+- Smoke local: `live=ok`, `ready_status=200`, `db=ok`, `redis=ok` y host no
+  permitido con `400 bad_request`, usando
+  `--loop judicial_archive.core.runtime:selector_loop_factory`.
+- Pre-commit: todos los hooks pasan, incluidos Ruff, mypy y detección de
+  secretos.
+- `git diff --check` sin espacios finales ni conflictos.
+- No se añadieron secretos ni datos reales; `.env` sigue ignorado.
 
-### 20.2 Estado de la guía
+### 20.2 Desviaciones aceptadas
 
-Esta guía describe el objetivo de B3 y las brechas frente al código existente.
-La implementación debe hacerlas efectivas y actualizar este registro con
-resultados reales. Mientras el registro siga en “Pendiente”, B3 no está cerrada.
+- `httpx2>=2.16,<3` se añadió solo a dependencias de desarrollo porque el
+  `TestClient` de Starlette 1.9 lo requiere; con `httpx` emite una advertencia
+  que pytest convierte en error. Es BSD-3-Clause, mantenido por Pydantic,
+  requiere Python ≥ 3.11 y no se usa en producción. `httpx` se conserva para
+  pruebas asíncronas.
+- En Windows se añadió `selector_loop_factory()` y los comandos usan
+  `--loop judicial_archive.core.runtime:selector_loop_factory`. Uvicorn 0.54
+  crea el loop antes de importar la app; cambiar la política en `main.py` no
+  evita el `InterfaceError` de psycopg con el loop Proactor.
+- `TrustedHostMiddleware` se implementó en `core/middleware.py` para devolver
+  el sobre común con `request_id`; la respuesta de texto plano de Starlette no
+  cumple el contrato. Mantiene la misma validación de `Host`.
+- Para integración se usa la base `sga_test` con un usuario con permisos sobre
+  su esquema `public`. Al derivar `TEST_DATABASE_URL` desde `SGA_DATABASE_URL`,
+  sustituir solo el nombre final de la base, no el usuario. El fixture de tests
+  oculta la URL en repr para no filtrar credenciales en fallos.
+
+### 20.3 Estado de la guía
+
+B3 está cerrada con la evidencia anterior. Esta guía sigue siendo la referencia
+de implementación y debe actualizarse si cambia el contrato de la capa común.

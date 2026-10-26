@@ -8,20 +8,27 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from judicial_archive import __version__
 from judicial_archive.api.v1.router import api_router
 from judicial_archive.core.config import Environment, Settings, get_settings
 from judicial_archive.core.errors import register_exception_handlers
 from judicial_archive.core.logging import configure_logging
-from judicial_archive.core.middleware import RequestContextMiddleware
+from judicial_archive.core.middleware import (
+    RequestBodyLimitMiddleware,
+    RequestContextMiddleware,
+    TrustedHostMiddleware,
+)
 from judicial_archive.core.runtime import configure_event_loop_policy
 from judicial_archive.db.session import Database
 
 configure_event_loop_policy()
 
 logger = structlog.get_logger(__name__)
+
+_OPENAPI_TAGS = [
+    {"name": "Salud", "description": "Disponibilidad del proceso y de sus dependencias"}
+]
 
 
 @asynccontextmanager
@@ -67,6 +74,7 @@ def create_app(settings: Settings | None = None, *, configure_logs: bool = True)
         docs_url="/docs" if docs_enabled else None,
         redoc_url="/redoc" if docs_enabled else None,
         openapi_url="/openapi.json" if docs_enabled else None,
+        openapi_tags=_OPENAPI_TAGS,
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings
@@ -76,14 +84,16 @@ def create_app(settings: Settings | None = None, *, configure_logs: bool = True)
 
     # El ultimo middleware agregado es el mas externo.
     app.add_middleware(
-        RequestContextMiddleware,
-        header_name=resolved_settings.request_id_header,
+        RequestBodyLimitMiddleware,
+        max_bytes=resolved_settings.max_request_body_bytes,
     )
+
     if resolved_settings.trusted_hosts:
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=resolved_settings.trusted_hosts,
         )
+
     if resolved_settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -99,5 +109,10 @@ def create_app(settings: Settings | None = None, *, configure_logs: bool = True)
             expose_headers=[resolved_settings.request_id_header],
             max_age=600,
         )
+
+    app.add_middleware(
+        RequestContextMiddleware,
+        header_name=resolved_settings.request_id_header,
+    )
 
     return app

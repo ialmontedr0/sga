@@ -14,3 +14,8 @@ def configure_event_loop_policy() -> None:
         asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
             policy_type()
         )
+
+
+def selector_loop_factory() -> asyncio.AbstractEventLoop:
+    """Fabrica de loop para uvicorn en Windows; psycopg no usa Proactor."""
+    return asyncio.SelectorEventLoop()

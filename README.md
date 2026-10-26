@@ -9,11 +9,13 @@ contratos de API probados.
 
 ## Estado
 
-Fase actual: **B0 --- Preparación del proyecto**.
+Fase actual: **B3 completada**; siguiente fase: **B4 --- Autenticación,
+autorización y administración de usuarios**.
 
-El repositorio contiene la base técnica del backend: configuración,
-calidad, pruebas, salud y documentación de decisiones. No contiene aún
-modelos de negocio ni endpoints funcionales.
+El repositorio contiene la base técnica y persistente del backend:
+configuración, esquema SQLAlchemy con migraciones, errores uniformes,
+logging, middleware, pruebas y salud. No contiene aún endpoints de
+negocio ni autenticación.
 
 ## Stack
 
@@ -45,17 +47,19 @@ uv sync
 Copy-Item .env.example .env
 # Editar .env con credenciales locales reales.
 uv run alembic upgrade head
-uv run uvicorn judicial_archive.asgi:app --reload
+uv run uvicorn judicial_archive.asgi:app --reload --loop judicial_archive.core.runtime:selector_loop_factory
 ```
 
-Abrir `http://127.0.0.1:8000/docs`.
+Abrir `http://127.0.0.1:8000/docs`. En Windows, el loop Selector es
+obligatorio para que psycopg async funcione; `.\scripts\dev.ps1` ya lo
+configura.
 
 ## Comandos
 
 ```powershell
 cd backend
 uv sync
-uv run uvicorn judicial_archive.asgi:app --reload
+uv run uvicorn judicial_archive.asgi:app --reload --loop judicial_archive.core.runtime:selector_loop_factory
 uv run arq judicial_archive.tasks.worker.WorkerSettings
 uv run alembic current
 uv run alembic upgrade head

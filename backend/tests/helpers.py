@@ -9,15 +9,16 @@ def build_test_settings(**overrides: Any) -> Settings:
     values: dict[str, Any] = {
         "environment": Environment.TESTING,
         "debug": False,
-        "secret_key": "x" * 48,
-        "database_url": "postgresql+psycopg://sga_test:sga_test@localhost:5432/sga_test",
-        "redis_url": "redis://localhost:6379/15",
-        "cors_origins": ["http://localhost:5173"],
-        "trusted_hosts": ["testserver", "localhost", "127.0.0.1"],
-        "docs_enabled": True,
+        "log_level": "WARNING",
         "log_json": False,
-        "session_cookie_secure": False,
-        "storage_root": "var/storage",
+        "database_url": "postgresql+psycopg://sga:sga@localhost:5432/sga_test",
+        "redis_url": "redis://localhost:6379/15",
+        "secret_key": "test-secret-key-with-at-least-32-characters",
+        "trusted_hosts": ["testserver", "localhost"],
+        "cors_origins": ["http://localhost:5173"],
+        "docs_enabled": True,
+        "readiness_timeout_seconds": 0.5,
+        "max_request_body_bytes": 1024 * 1024,
     }
     values.update(overrides)
     return Settings.model_validate(values)

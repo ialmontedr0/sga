@@ -19,6 +19,7 @@ class ErrorCode(StrEnum):
     NOT_FOUND = "not_found"
     METHOD_NOT_ALLOWED = "method_not_allowed"
     CONFLICT = "conflict"
+    PAYLOAD_TOO_LARGE = "payload_too_large"
     RATE_LIMITED = "rate_limited"
     SERVICE_UNAVAILABLE = "service_unavailable"
     INTERNAL_ERROR = "internal_error"
@@ -72,6 +73,11 @@ class InvalidParameterError(AppError):
     code = ErrorCode.VALIDATION_ERROR
 
 
+class PayloadTooLargeError(AppError):
+    status_code = 413
+    code = ErrorCode.PAYLOAD_TOO_LARGE
+
+
 class RateLimitedError(AppError):
     status_code = 429
     code = ErrorCode.RATE_LIMITED
@@ -96,6 +102,7 @@ _HTTP_STATUS_TO_CODE: dict[int, ErrorCode] = {
     404: ErrorCode.NOT_FOUND,
     405: ErrorCode.METHOD_NOT_ALLOWED,
     409: ErrorCode.CONFLICT,
+    413: ErrorCode.PAYLOAD_TOO_LARGE,
     422: ErrorCode.VALIDATION_ERROR,
     429: ErrorCode.RATE_LIMITED,
     503: ErrorCode.SERVICE_UNAVAILABLE,
@@ -107,7 +114,7 @@ def _request_id(request: Request) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _error_response(
+def build_error_response(
     *,
     status_code: int,
     code: ErrorCode,
@@ -157,7 +164,7 @@ async def app_error_handler(request: Request, exc: Exception) -> Response:
             path=request.url.path,
             method=request.method,
         )
-    return _error_response(
+    return build_error_response(
         status_code=app_error.status_code,
         code=app_error.code,
         message=app_error.message,
@@ -168,7 +175,7 @@ async def app_error_handler(request: Request, exc: Exception) -> Response:
 
 async def validation_exception_handler(request: Request, exc: Exception) -> Response:
     validation_error = cast(RequestValidationError, exc)
-    return _error_response(
+    return build_error_response(
         status_code=422,
         code=ErrorCode.VALIDATION_ERROR,
         message="Los datos enviados no son validos.",
@@ -190,7 +197,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> Response:
         ErrorCode.INTERNAL_ERROR if http_error.status_code >= 500 else ErrorCode.BAD_REQUEST
     )
     code = _HTTP_STATUS_TO_CODE.get(http_error.status_code, default_code)
-    return _error_response(
+    return build_error_response(
         status_code=http_error.status_code,
         code=code,
         message=message,
@@ -206,7 +213,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> Respo
         error_type=type(exc).__name__,
         exc_info=exc,
     )
-    return _error_response(
+    return build_error_response(
         status_code=500,
         code=ErrorCode.INTERNAL_ERROR,
         message="Error interno del servidor.",

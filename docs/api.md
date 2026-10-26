@@ -18,6 +18,20 @@
 ## Cabeceras
 - `X-Request-ID`: se conserva si es válido; si no, se genera uno nuevo.
 - La respuesta siempre incluye `X-Request-ID`.
+- CORS solo permite los orígenes configurados en `SGA_CORS_ORIGINS`.
+- Los hosts no permitidos se rechazan con `400 bad_request` según
+  `SGA_TRUSTED_HOSTS`, conservando CORS y `X-Request-ID`.
+
+## Límites de petición
+El cuerpo declarado por `Content-Length` no puede superar
+`SGA_MAX_REQUEST_BODY_BYTES` (1 MiB por defecto, entre 1 KiB y 16 MiB).
+Un cuerpo mayor devuelve `413` con el código `payload_too_large`.
+
+## Códigos de error
+`validation_error`, `bad_request`, `unauthorized`, `forbidden`,
+`not_found`, `method_not_allowed`, `conflict`, `payload_too_large`,
+`rate_limited`, `service_unavailable` e `internal_error`. Los `500` no
+exponen trazas ni detalles internos.
 
 ## Salud
 ### GET `/api/v1/health/live`

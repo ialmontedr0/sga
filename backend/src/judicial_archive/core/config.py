@@ -10,6 +10,7 @@ from pydantic import (
     PostgresDsn,
     RedisDsn,
     SecretStr,
+    ValidationError,
     field_validator,
     model_validator,
 )
@@ -62,6 +63,7 @@ class Settings(BaseSettings):
         default="X-Request-ID",
         pattern=r"^[A-Za-z0-9-]{3,64}$",
     )
+    max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=16_777_216)
 
     # Base de datos
     db_pool_size: int = Field(default=10, ge=1, le=100)
@@ -116,6 +118,20 @@ class Settings(BaseSettings):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
 
+    @field_validator("cors_origins")
+    @classmethod
+    def _validate_cors_origins(cls, origins: list[str]) -> list[str]:
+        for origin in origins:
+            if origin == "*":
+                continue
+            if not origin.startswith(("http://", "https://")):
+                msg = f"Origen CORS invalido: {origin!r}; debe incluir esquema."
+                raise ValueError(msg)
+            if origin.endswith("/"):
+                msg = f"Origen CORS invalido: {origin!r}; no debe terminar en '/'."
+                raise ValueError(msg)
+        return origins
+
     @model_validator(mode="after")
     def _validate_cors_credentials(self) -> Self:
         if any(origin.strip() == "*" for origin in self.cors_origins):
@@ -148,7 +164,18 @@ class Settings(BaseSettings):
         return self
 
 
+def _safe_validation_summary(exc: ValidationError) -> str:
+    lines = ["Configuracion SGA invalida:"]
+    for error in exc.errors():
+        location = ".".join(str(part) for part in error["loc"])
+        lines.append(f"- {location}: {error['msg']}")
+    return "\n".join(lines)
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Devuelve la configuracion validada, cacheada por proceso."""
-    return Settings()  # pyright: ignore[reportCallIssue]
+    try:
+        return Settings()  # pyright: ignore[reportCallIssue]
+    except ValidationError as exc:
+        raise RuntimeError(_safe_validation_summary(exc)) from None

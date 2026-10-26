@@ -20,8 +20,30 @@ _SENSITIVE_KEY_MARKERS = frozenset(
         "api_key",
         "apikey",
         "session",
+        "dsn",
+        "database_url",
+        "redis_url",
+        "connection_string",
     }
 )
+
+
+def _is_sensitive_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(marker in lowered for marker in _SENSITIVE_KEY_MARKERS)
+
+
+def _redact_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "***" if _is_sensitive_key(str(key)) else _redact_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_value(item) for item in value)
+    return value
 
 
 def _redact_sensitive_values(
@@ -31,8 +53,7 @@ def _redact_sensitive_values(
 ) -> EventDict:
     """Reemplaza valores de claves sensibles antes de emitir el log."""
     for key in list(event_dict):
-        if any(marker in key.lower() for marker in _SENSITIVE_KEY_MARKERS):
-            event_dict[key] = "***"
+        event_dict[key] = "***" if _is_sensitive_key(key) else _redact_value(event_dict[key])
     return event_dict
 
 

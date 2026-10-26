@@ -23,6 +23,11 @@ from judicial_archive.db.base import Base
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
+class _RedactedDatabaseUrl(str):
+    def __repr__(self) -> str:
+        return "<TEST_DATABASE_URL>"
+
+
 def _integration_url() -> str:
     if os.getenv("RUN_INTEGRATION") != "1":
         pytest.skip("RUN_INTEGRATION=1 no está definido")
@@ -31,7 +36,7 @@ def _integration_url() -> str:
         pytest.skip("TEST_DATABASE_URL no está definido")
     if "prod" in url.lower():
         pytest.skip("La URL parece de producción; se rechaza por seguridad")
-    return url
+    return _RedactedDatabaseUrl(url)
 
 
 @pytest.fixture(scope="session")

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from judicial_archive.core.config import Environment, Settings
+from judicial_archive.core.config import Environment, Settings, get_settings
 from tests.helpers import build_test_settings
 
 
@@ -27,6 +27,23 @@ def test_api_prefix_must_start_with_slash() -> None:
 def test_api_prefix_must_not_end_with_slash() -> None:
     with pytest.raises(ValidationError):
         build_test_settings(api_v1_prefix="/api/v1/")
+
+
+def test_cors_origin_must_not_end_with_slash() -> None:
+    with pytest.raises(ValidationError):
+        build_test_settings(cors_origins=["http://localhost:5173/"])
+
+
+@pytest.mark.parametrize("max_bytes", [1023, 16_777_217])
+def test_request_body_limit_is_bounded(max_bytes: int) -> None:
+    with pytest.raises(ValidationError):
+        build_test_settings(max_request_body_bytes=max_bytes)
+
+
+def test_default_request_body_limit() -> None:
+    settings = build_test_settings(max_request_body_bytes=1024 * 1024)
+
+    assert settings.max_request_body_bytes == 1024 * 1024
 
 
 def test_production_accepts_secure_configuration() -> None:
@@ -91,3 +108,29 @@ def test_comma_separated_environment_lists(monkeypatch: pytest.MonkeyPatch) -> N
         "http://127.0.0.1:5173",
     ]
     assert settings.trusted_hosts == ["localhost", "127.0.0.1", "testserver"]
+
+
+def test_get_settings_error_does_not_reveal_secrets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret_key = "corto-secreto-no-revelar"
+    db_password = "clave-db-no-revelar"
+    monkeypatch.setenv("SGA_ENVIRONMENT", "testing")
+    monkeypatch.setenv("SGA_SECRET_KEY", secret_key)
+    monkeypatch.setenv("SGA_DATABASE_URL", f"postgresql+psycopg://u:{db_password}@/db")
+    monkeypatch.setenv("SGA_REDIS_URL", "redis://localhost:6379/15")
+
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError) as exc_info:
+            get_settings()
+    finally:
+        get_settings.cache_clear()
+
+    message = str(exc_info.value)
+    assert "Configuracion SGA invalida" in message
+    assert secret_key not in message
+    assert db_password not in message
+    assert "input_value" not in message
+    assert exc_info.value.__cause__ is None
+    assert exc_info.value.__suppress_context__ is True
