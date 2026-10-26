@@ -6,6 +6,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
 
+import judicial_archive.models  # noqa: F401
 from judicial_archive.core.config import get_settings
 from judicial_archive.db.base import Base
 
@@ -14,8 +15,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
-_settings = get_settings()
-config.set_main_option("sqlalchemy.url", str(_settings.database_url).replace("%", "%%"))
+_url = config.get_main_option("sqlalchemy.url")
+if not _url:
+    _url = str(get_settings().database_url)
+config.set_main_option("sqlalchemy.url", _url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

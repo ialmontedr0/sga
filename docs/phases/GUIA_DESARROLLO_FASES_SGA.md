@@ -635,56 +635,8 @@ la futura interfaz.
 -   Los roles pueden describirse mediante permisos concretos.
 -   Los contratos cubren los flujos principales y los errores esperados.
 
-## Estado de la fase: Pendiente
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
-
-Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
-
-Fase B1 --- Análisis funcional, modelo de dominio y contratos
-
-### Objetivo
-
-Cerrar las ambigüedades del negocio y establecer contratos estables para
-la futura interfaz.
-
-### Actividades
-
--   Definir glosario: caja, expediente, imputado, tribunal, bandeja,
-    posición, lote, préstamo y ubicación.
--   Confirmar formatos reales de NUC y sentencia/resolución.
--   Definir qué significa exactamente el número de proceso y la unicidad
-    del NUC.
--   Resolver la duplicidad de códigos de tribunales.
--   Definir políticas de numeración y cambios de número visible.
--   Especificar estados de cajas, ubicaciones, préstamos, lotes y
-    archivos.
--   Definir matriz de roles y permisos.
--   Definir reglas de borrado, archivo histórico y retención.
--   Diseñar esquemas de API y convenciones de errores.
--   Documentar filtros, ordenación, paginación y búsquedas.
--   Definir límites de carga y retención de documentos originales.
-
-### Entregables
-
--   Especificación funcional.
--   Diagrama entidad-relación.
--   Diagrama de estados de las entidades críticas.
--   Matriz de roles y permisos.
--   Catálogo inicial de tribunales y tipos de resolución.
--   Contratos OpenAPI preliminares.
--   Lista de decisiones pendientes con responsable.
-
-### Criterios de aceptación
-
--   No hay ambigüedades críticas en la separación de tipos de caja.
--   Están documentados los formatos de identificadores y sus excepciones
-    históricas.
--   Los roles pueden describirse mediante permisos concretos.
--   Los contratos cubren los flujos principales y los errores esperados.
-
-En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB1_guide.md, asi queda todo documentado de una vez.
-
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B2 --- Base de datos, modelos SQLAlchemy y migraciones Alembic
 
@@ -733,6 +685,24 @@ Construir una base de datos consistente y migrable.
 -   Las migraciones se verifican en una base de pruebas antes de
     producción.
 
+### Evidencia de cierre
+
+-   Fecha y entorno: 2026-10-26; Windows; PostgreSQL 18.4; Python
+    3.12.13 con `uv`.
+-   Esquema: 41 tablas; migración inicial `20261026_0001`; `sga_test`
+    recreada desde esquema vacío.
+-   `uv run ruff check .`: sin errores.
+-   `uv run ruff format --check .`: 82 archivos formateados.
+-   `uv run mypy src`: sin errores en 59 archivos.
+-   `uv run pytest tests/unit`: 34 passed.
+-   `uv run pytest tests/integration -m integration -n 0`: 46 passed.
+-   `uv run alembic check`: sin operaciones nuevas detectadas.
+-   Suite completa: 87 passed; cobertura 92.54 % (umbral 75).
+-   Limitaciones: render Mermaid no ejecutado (`mmdc` ausente); no se
+    realizó ensayo de restauración completo.
+-   Sin commit ni push.
+
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
 
 # Fase B3 --- Configuración de la API y capa común
@@ -774,7 +744,53 @@ Crear la infraestructura común de FastAPI para todos los módulos.
     disponibilidad de dependencias.
 -   OpenAPI representa los contratos reales.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B3 --- Configuración de la API y capa común
+
+### Objetivo
+
+Crear la infraestructura común de FastAPI para todos los módulos.
+
+### Actividades
+
+-   Configurar aplicación, routers y ciclo de vida.
+-   Crear prefijo versionado, por ejemplo `/api/v1`.
+-   Añadir validación de configuración.
+-   Implementar manejo centralizado de excepciones.
+-   Establecer formato uniforme de errores.
+-   Configurar CORS con orígenes permitidos explícitos.
+-   Añadir middleware de identificador de petición y logging.
+-   Implementar health checks para aplicación y dependencias.
+-   Añadir paginación, ordenación y filtros comunes.
+-   Configurar documentación OpenAPI.
+-   Añadir límites razonables de petición y protección de endpoints.
+-   Evitar devolver trazas internas al cliente en producción.
+
+### Entregables
+
+-   Aplicación FastAPI ejecutable.
+-   Router versionado.
+-   Esquemas de error y respuesta.
+-   Health checks.
+-   Logging estructurado.
+-   OpenAPI inicial.
+-   Pruebas de API común.
+
+### Criterios de aceptación
+
+-   Los errores de validación y de negocio tienen respuestas coherentes.
+-   La API no revela secretos ni trazas internas.
+-   Los health checks distinguen disponibilidad de la API y
+    disponibilidad de dependencias.
+-   OpenAPI representa los contratos reales.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB3_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B4 --- Autenticación, autorización y administración de usuarios
 
@@ -828,7 +844,66 @@ código ni semillas.
 -   Los eventos de autenticación relevantes quedan registrados sin
     guardar secretos.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B4 --- Autenticación, autorización y administración de usuarios
+
+### Objetivo
+
+Asegurar el acceso al sistema y aplicar permisos en el servidor.
+
+### Actividades
+
+-   Implementar autenticación segura.
+-   Seleccionar estrategia de sesión o token según despliegue y
+    clientes.
+-   Proteger contraseñas con un algoritmo de hash adecuado.
+-   Implementar inicio y cierre de sesión, expiración y revocación.
+-   Implementar recuperación de acceso mediante flujo seguro si se
+    habilita.
+-   Crear usuarios y asignar roles.
+-   Implementar permisos por operación y recurso.
+-   Añadir limitación de intentos y eventos de seguridad.
+-   Proteger cuentas administrativas.
+-   Aplicar validación de permisos a todas las rutas sensibles.
+-   Documentar alta, baja, bloqueo y recuperación de usuarios.
+
+### Roles iniciales
+
+-   Administrador.
+-   Supervisor de archivo.
+-   Archivista.
+-   Digitalizador.
+-   Consulta.
+
+Los dos administradores iniciales serán cuentas creadas mediante un
+procedimiento seguro; no se incluirán contraseñas predeterminadas en
+código ni semillas.
+
+### Entregables
+
+-   Endpoints de autenticación.
+-   CRUD de usuarios, roles y permisos.
+-   Dependencias de autorización.
+-   Matriz de permisos ejecutable.
+-   Pruebas de acceso permitido y denegado.
+-   Guía de administración de usuarios.
+
+### Criterios de aceptación
+
+-   Un usuario sin permiso no puede realizar la operación llamando
+    directamente a la API.
+-   Las sesiones/token expirados o revocados dejan de funcionar.
+-   Las contraseñas nunca se almacenan en texto plano.
+-   Los eventos de autenticación relevantes quedan registrados sin
+    guardar secretos.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB4_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B5 --- Catálogos y configuración administrativa
 
