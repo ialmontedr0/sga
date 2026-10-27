@@ -754,52 +754,8 @@ local con PostgreSQL y Redis en `ok` y rechazo de host no permitido con
 `400 bad_request`. Detalle completo en `docs/phases/phaseB3_guide.md`,
 sección 20.
 
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
-
-Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
-
-Fase B3 --- Configuración de la API y capa común
-
-### Objetivo
-
-Crear la infraestructura común de FastAPI para todos los módulos.
-
-### Actividades
-
--   Configurar aplicación, routers y ciclo de vida.
--   Crear prefijo versionado, por ejemplo `/api/v1`.
--   Añadir validación de configuración.
--   Implementar manejo centralizado de excepciones.
--   Establecer formato uniforme de errores.
--   Configurar CORS con orígenes permitidos explícitos.
--   Añadir middleware de identificador de petición y logging.
--   Implementar health checks para aplicación y dependencias.
--   Añadir paginación, ordenación y filtros comunes.
--   Configurar documentación OpenAPI.
--   Añadir límites razonables de petición y protección de endpoints.
--   Evitar devolver trazas internas al cliente en producción.
-
-### Entregables
-
--   Aplicación FastAPI ejecutable.
--   Router versionado.
--   Esquemas de error y respuesta.
--   Health checks.
--   Logging estructurado.
--   OpenAPI inicial.
--   Pruebas de API común.
-
-### Criterios de aceptación
-
--   Los errores de validación y de negocio tienen respuestas coherentes.
--   La API no revela secretos ni trazas internas.
--   Los health checks distinguen disponibilidad de la API y
-    disponibilidad de dependencias.
--   OpenAPI representa los contratos reales.
-
-En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB3_guide.md, asi queda todo documentado de una vez.
-
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B4 --- Autenticación, autorización y administración de usuarios
 
@@ -856,64 +812,6 @@ código ni semillas.
 ## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
 
-Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
-
-Fase B4 --- Autenticación, autorización y administración de usuarios
-
-### Objetivo
-
-Asegurar el acceso al sistema y aplicar permisos en el servidor.
-
-### Actividades
-
--   Implementar autenticación segura.
--   Seleccionar estrategia de sesión o token según despliegue y
-    clientes.
--   Proteger contraseñas con un algoritmo de hash adecuado.
--   Implementar inicio y cierre de sesión, expiración y revocación.
--   Implementar recuperación de acceso mediante flujo seguro si se
-    habilita.
--   Crear usuarios y asignar roles.
--   Implementar permisos por operación y recurso.
--   Añadir limitación de intentos y eventos de seguridad.
--   Proteger cuentas administrativas.
--   Aplicar validación de permisos a todas las rutas sensibles.
--   Documentar alta, baja, bloqueo y recuperación de usuarios.
-
-### Roles iniciales
-
--   Administrador.
--   Supervisor de archivo.
--   Archivista.
--   Digitalizador.
--   Consulta.
-
-Los dos administradores iniciales serán cuentas creadas mediante un
-procedimiento seguro; no se incluirán contraseñas predeterminadas en
-código ni semillas.
-
-### Entregables
-
--   Endpoints de autenticación.
--   CRUD de usuarios, roles y permisos.
--   Dependencias de autorización.
--   Matriz de permisos ejecutable.
--   Pruebas de acceso permitido y denegado.
--   Guía de administración de usuarios.
-
-### Criterios de aceptación
-
--   Un usuario sin permiso no puede realizar la operación llamando
-    directamente a la API.
--   Las sesiones/token expirados o revocados dejan de funcionar.
--   Las contraseñas nunca se almacenan en texto plano.
--   Los eventos de autenticación relevantes quedan registrados sin
-    guardar secretos.
-
-En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB4_guide.md, asi queda todo documentado de una vez.
-
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
-
 # Fase B5 --- Catálogos y configuración administrativa
 
 ### Objetivo
@@ -951,7 +849,52 @@ fuente.
     silenciosa.
 -   Los códigos visibles no sustituyen las claves internas.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B5 --- Catálogos y configuración administrativa
+
+### Objetivo
+
+Hacer configurables los datos institucionales sin modificar el código
+fuente.
+
+### Actividades
+
+-   CRUD de tribunales.
+-   Gestión de códigos compartidos, estado y vigencia.
+-   CRUD de tipos de resolución y reglas de prefijos.
+-   CRUD de tipos de caja si se decide permitir extensiones.
+-   CRUD de áreas y anaqueles.
+-   Configuración de bandejas, posiciones y capacidad.
+-   Configuración de política de numeración de cajas.
+-   Validar cambios que afecten entidades existentes.
+-   Añadir filtros, búsqueda, paginación y auditoría.
+-   Definir reglas de desactivación y no de borrado físico cuando
+    existan dependencias.
+
+### Entregables
+
+-   Endpoints y servicios de catálogos.
+-   Validadores configurables.
+-   Datos iniciales confirmados.
+-   Pruebas CRUD y de dependencias.
+-   Documentación de configuración.
+
+### Criterios de aceptación
+
+-   Un administrador autorizado puede mantener los catálogos.
+-   Desactivar un tribunal no rompe datos históricos.
+-   Un cambio de capacidad no elimina posiciones ocupadas de forma
+    silenciosa.
+-   Los códigos visibles no sustituyen las claves internas.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB5_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor, sigue el mismo patron de guia como el phaseB1_guide.md.
+
 
 # Fase B6 --- Inventario físico y ubicaciones
 
@@ -993,7 +936,54 @@ y ubicación de cada caja.
     confirmada y posición vacía.
 -   La capacidad visible coincide con la configuración física.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B6 --- Inventario físico y ubicaciones
+
+### Objetivo
+
+Representar de manera fiable las áreas, anaqueles, bandejas, posiciones
+y ubicación de cada caja.
+
+### Actividades
+
+-   CRUD de áreas y anaqueles.
+-   Definición de capacidad configurable por anaquel.
+-   Generación y mantenimiento de bandejas y posiciones.
+-   Asignación y desasignación de cajas.
+-   Estados de ubicación: desconocida, pendiente de verificar,
+    confirmada, en tránsito u otros aprobados.
+-   Historial de ubicación.
+-   Validaciones de capacidad y unicidad.
+-   Operaciones de traslado con origen, destino, motivo y usuario.
+-   Soporte para cajas sin ubicación conocida.
+-   Consultas de ocupación y capacidad disponible.
+-   Diseño de operaciones de inventario físico y conciliación.
+
+### Entregables
+
+-   Modelos y servicios de ubicación.
+-   Endpoints para plano y posiciones.
+-   Endpoints de movimientos.
+-   Reportes de ocupación.
+-   Pruebas de concurrencia de asignación.
+-   Documentación de estados de ubicación.
+
+### Criterios de aceptación
+
+-   No se puede ocupar dos veces una misma posición.
+-   Una caja no puede estar en dos posiciones activas.
+-   Los movimientos mantienen historial completo.
+-   El sistema diferencia caja no registrada, caja sin ubicación
+    confirmada y posición vacía.
+-   La capacidad visible coincide con la configuración física.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB6_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B7 --- Cajas, expedientes e inventario administrativo
 
