@@ -23,7 +23,7 @@ dependencies = [
     "arq>=0.28,<0.29",
     "fastapi>=0.161,<1",
     "psycopg[binary]>=3.3,<4",
-    "pydantic>=2.14,<3",
+    "pydantic[email]>=2.14,<3",
     "pydantic-settings>=2.16,<3",
     "pwdlib[argon2]>=0.3,<1",
     "redis[hiredis]>=5.2,<6",
@@ -110,6 +110,7 @@ ignore = [
 "tests/**/*.py" = ["S101", "S105", "S106", "S107"]
 "alembic/versions/**/*.py" = ["E501"]
 "src/judicial_archive/tasks/worker.py" = ["ARG"]
+"scripts/**/*.py" = ["T201", "ASYNC250", "N806"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["judicial_archive", "tests"]

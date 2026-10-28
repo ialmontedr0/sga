@@ -1,0 +1,8 @@
+USERS_READ = "users.read"
+USERS_CREATE = "users.create"
+USERS_UPDATE = "users.update"
+USERS_DELETE = "users.delete"
+USERS_LOCK = "users.lock"
+ROLES_MANAGE = "roles.manage"
+PERMISSIONS_MANAGE = "permissions.manage"
+SESSIONS_MANAGE = "sessions.manage"

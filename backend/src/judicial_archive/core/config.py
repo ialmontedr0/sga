@@ -95,6 +95,33 @@ class Settings(BaseSettings):
     # Salud
     readiness_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
 
+    # Autenticacion y sesiones
+    auth_session_cookie_name: str = "sga_session"
+    auth_session_cookie_secure: bool = True
+    auth_session_cookie_httponly: bool = True
+    auth_session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    auth_session_cookie_path: str = "/"
+    auth_session_idle_minutes: int = Field(default=30, ge=5, le=1440)
+    auth_session_absolute_hours: int = Field(default=300, ge=300, le=720)
+    auth_session_max_age_seconds: int = Field(default=172800, ge=300, le=2592000)
+
+    # CSRF
+    auth_csrf_cookie_name: str = "sga_csrf"
+    auth_csrf_header_name: str = "X-CSRF-Token"
+    auth_csrf_cookie_secure: bool = True
+    auth_csrf_cookie_httponly: bool = False
+    auth_csrf_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    auth_csrf_cookie_path: str = "/"
+    auth_csrf_max_age_seconds: int = Field(default=172800, ge=300, le=2592000)
+
+    # Login protection
+    auth_login_max_attempts: int = Field(default=5, ge=1, le=20)
+    auth_login_lockout_minutes: int = Field(default=15, ge=1, le=1440)
+    auth_login_window_minutes: int = Field(default=15, ge=1, le=60)
+
+    # Password policy
+    auth_password_min_length: int = Field(default=12, ge=8, le=128)
+
     @field_validator("secret_key")
     @classmethod
     def _validate_secret_key(cls, value: SecretStr) -> SecretStr:
@@ -161,6 +188,30 @@ class Settings(BaseSettings):
         if problems:
             msg = "Configuracion de produccion invalida: " + "; ".join(problems)
             raise ValueError(msg)
+        return self
+
+    @field_validator("auth_session_cookie_samesite", "auth_csrf_cookie_samesite")
+    @classmethod
+    def _validate_samesite(cls, v: str) -> str:
+        if v.lower() not in {"lax", "strict", "none"}:
+            raise ValueError("SameSite debe ser lax|strict|none")
+        return v.lower()
+
+    @model_validator(mode="after")
+    def _validate_auth_production(self) -> Self:
+        if self.environment is not Environment.PRODUCTION:
+            return self
+        problems: list[str] = []
+        if not self.auth_session_cookie_secure:
+            problems.append("auth_session_cookie_secure debe ser true en produccion")
+        if not self.auth_csrf_cookie_secure:
+            problems.append("auth_csrf_cookie_secure debe ser true en produccion")
+        if self.auth_session_cookie_samesite == "none" and not self.auth_session_cookie_secure:
+            problems.append("SameSite=None requiere Secure=True")
+        if self.auth_csrf_cookie_samesite == "none" and not self.auth_csrf_cookie_secure:
+            problems.append("SameSite=None requiere Secure=True")
+        if problems:
+            raise ValueError("Configuracion auth de produccion invalida:" + "; ".join(problems))
         return self
 
 
