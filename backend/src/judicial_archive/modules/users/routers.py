@@ -5,7 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from judicial_archive.api.deps import get_session, require_permissions
+from judicial_archive.api.deps import get_app_settings, get_session, require_permissions
+from judicial_archive.core.config import Settings
+from judicial_archive.modules.auth import schemas as auth_schemas, services as auth_services
 from judicial_archive.modules.users import permissions, schemas, services
 from judicial_archive.modules.users.models import User
 
@@ -70,3 +72,49 @@ async def assign_roles(
     current_user: User = Depends(require_permissions(permissions.ROLES_MANAGE)),
 ) -> dict[str, str]:
     return await services.assign_roles(request, session, current_user, user_id, body.role_codes)
+
+
+@router.get("/{user_id}", response_model=schemas.UserDetail)
+async def get_user(
+    user_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.USERS_READ)),
+) -> dict[str, object]:
+    return await services.get_user_detail(session, user_id)
+
+
+@router.get("/{user_id}/sessions", response_model=list[auth_schemas.SessionInfo])
+async def list_user_sessions(
+    user_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.SESSIONS_READ)),
+) -> list[auth_schemas.SessionInfo]:
+    return await auth_services.list_user_sessions(session, user_id)
+
+
+@router.post(
+    "/{user_id}/sessions/{session_id}/revoke",
+    response_model=schemas.MessageResponse,
+)
+async def revoke_user_session(
+    request: Request,
+    user_id: UUID,
+    session_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.SESSIONS_MANAGE)),
+) -> dict[str, str]:
+    return await auth_services.revoke_user_session(
+        request, session, current_user, user_id, session_id
+    )
+
+
+@router.post("/{user_id}/reset-password", response_model=schemas.MessageResponse)
+async def reset_password(
+    request: Request,
+    user_id: UUID,
+    body: schemas.ResetPasswordRequest,
+    session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(require_permissions(permissions.USERS_RESET_PASSWORD)),
+) -> dict[str, str]:
+    return await services.reset_password(request, session, settings, current_user, user_id, body)

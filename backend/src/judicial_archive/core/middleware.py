@@ -7,12 +7,17 @@ from uuid import uuid4
 import structlog
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.middleware.trustedhost import parse_host_header  # type: ignore[attr-defined]
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from judicial_archive.core.config import Settings
 from judicial_archive.core.errors import ErrorCode, build_error_response
+from judicial_archive.core.security import constant_time_compare
 
 _REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
 
 class RequestContextMiddleware:
@@ -186,5 +191,53 @@ class RequestBodyLimitMiddleware:
             message=message,
             request_id=request_id if isinstance(request_id, str) else None,
             details=details,
+        )
+        await response(scope, receive, send)
+
+
+class CSRFMiddleware:
+    """Valida double-sumbit cookie en metodos no idempotentes."""
+
+    def __init__(
+        self, app: ASGIApp, *, settings: Settings, exempt_paths: tuple[str, ...] = ()
+    ) -> None:
+        self.app = app
+        self.settings = settings
+        self.exempt_paths = frozenset(exempt_paths)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not self.settings.auth_csrf_enabled:
+            await self.app(scope, receive, send)
+            return
+
+        method = str(scope.get("method", "GET")).upper()
+        path = str(scope.get("path", ""))
+        if method in _SAFE_METHODS or path in self.exempt_paths:
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope)
+        cookie_token = request.cookies.get(self.settings.auth_csrf_cookie_name)
+        header_token = request.headers.get(self.settings.auth_csrf_header_name)
+
+        if (
+            not cookie_token
+            or not header_token
+            or not constant_time_compare(cookie_token, header_token)
+        ):
+            await self._reject(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+    async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
+        state = scope.get("state")
+        request_id = state.get("request_id") if isinstance(state, dict) else None
+        response: Response = build_error_response(
+            status_code=403,
+            code=ErrorCode.FORBIDDEN,
+            message="Token CSRF ausente o invalido.",
+            request_id=request_id if isinstance(request_id, str) else None,
+            details={"reason": "csrf"},
         )
         await response(scope, receive, send)

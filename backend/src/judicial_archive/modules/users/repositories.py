@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from judicial_archive.modules.users.models import Permission, Role, User, UserRole
+from judicial_archive.modules.users.models import Permission, Role, RolePermission, User, UserRole
 
 
 class UsersRepository:
@@ -39,6 +39,16 @@ class UsersRepository:
         res = await self.session.execute(select(Role).where(Role.code.in_(codes)))
         return res.scalars().all()
 
+    async def get_role_codes(self, user_id: UUID) -> list[str]:
+        res = await self.session.execute(
+            select(Role.code)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+            .where(Role.status == "ACTIVE")
+            .order_by(Role.code)
+        )
+        return [row[0] for row in res.all()]
+
     async def list_roles(self) -> Sequence[Permission]:
         res = await self.session.execute(select(Permission).order_by(Role.code))
         return res.scalars().all()
@@ -46,6 +56,19 @@ class UsersRepository:
     async def list_permissions(self) -> Sequence[Permission]:
         res = await self.session.execute(select(Permission).order_by(Permission.code))
         return res.scalars().all()
+
+    async def get_permission_codes(self, user_id: UUID) -> list[str]:
+        res = await self.session.execute(
+            select(Permission.code)
+            .join(RolePermission, RolePermission.permission_id == Permission.id)
+            .join(Role, Role.id == RolePermission.role_id)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+            .where(Role.status == "ACTIVE")
+            .distinct()
+            .order_by(Permission.code)
+        )
+        return [row[0] for row in res.all()]
 
     async def get_user_role_ids(self, user_id: UUID) -> set[UUID]:
         res = await self.session.execute(

@@ -4312,58 +4312,58 @@ No declarar B4 cerrada si algún comando no se ejecutó. Indicar la limitación.
 
 #### Seed RBAC
 
-- [ ] `db/seed_rbac.py` creado con catálogo y matriz
-- [ ] `seed.py` invoca `seed_rbac`
-- [ ] `python -m judicial_archive.db.seed_rbac` ejecutado dos veces sin duplicados
-- [ ] Administrador con todos los permisos
-- [ ] Usuario `CONSULTA` recibe `403` en `/users/`
+- [X] `db/seed_rbac.py` creado con catálogo y matriz
+- [X] `seed.py` invoca `seed_rbac`
+- [X] `python -m judicial_archive.db.seed_rbac` ejecutado dos veces sin duplicados
+- [X] Administrador con todos los permisos
+- [X] Usuario `CONSULTA` recibe `403` en `/users/`
 
 #### CSRF
 
-- [ ] `auth_csrf_enabled` en configuración y validador de producción
-- [ ] `CSRFMiddleware` registrado como middleware interno
-- [ ] `GET /auth/csrf` emite cookie y token
-- [ ] Login exige `X-CSRF-Token`
-- [ ] `get_current_user` vincula el token a `auth_sessions.csrf_token_hash`
-- [ ] Mutaciones sin token devuelven `403`
+- [X] `auth_csrf_enabled` en configuración y validador de producción
+- [X] `CSRFMiddleware` registrado como middleware interno
+- [X] `GET /auth/csrf` emite cookie y token
+- [X] Login exige `X-CSRF-Token`
+- [X] `get_current_user` vincula el token a `auth_sessions.csrf_token_hash`
+- [X] Mutaciones sin token devuelven `403`
 
 #### Roles y permisos
 
-- [ ] `GET/POST /roles/` funcionan
-- [ ] `PATCH /roles/{id}` funciona
-- [ ] `POST /roles/{id}/permissions` reemplaza permisos y audita
-- [ ] `GET/POST /permissions/` funcionan
-- [ ] Rol `ADMINISTRADOR` no restringible por API
-- [ ] Códigos desconocidos devuelven `400`
+- [X] `GET/POST /roles/` funcionan
+- [X] `PATCH /roles/{id}` funciona
+- [X] `POST /roles/{id}/permissions` reemplaza permisos y audita
+- [X] `GET/POST /permissions/` funcionan
+- [X] Rol `ADMINISTRADOR` no restringible por API
+- [X] Códigos desconocidos devuelven `400`
 
 #### Usuarios y sesiones
 
-- [ ] `GET /users/{id}` con roles y permisos
-- [ ] Reset de contraseña revoca sesiones
-- [ ] Listado y revocación de sesiones por administrador
-- [ ] Auto-bloqueo y auto-retiro de rol administrador bloqueados
-- [ ] `UserUpdate.status` validado con `Literal`
-- [ ] Errores `400/403/404/409/422` coherentes
+- [X] `GET /users/{id}` con roles y permisos
+- [X] Reset de contraseña revoca sesiones
+- [X] Listado y revocación de sesiones por administrador
+- [X] Auto-bloqueo y auto-retiro de rol administrador bloqueados
+- [X] `UserUpdate.status` validado con `Literal`
+- [X] Errores `400/403/404/409/422` coherentes
 
 #### Pruebas y calidad
 
-- [ ] Tests unitarios RBAC/CSRF pasan
-- [ ] Tests de integración pasan con PostgreSQL/Redis
-- [ ] Suite completa sin fallos (136 previas + nuevas)
-- [ ] Cobertura global `>= 75 %`
-- [ ] `ruff check .` OK
-- [ ] `ruff format --check .` OK
-- [ ] `mypy src` OK
-- [ ] Sin secretos ni contraseñas en el diff
+- [X] Tests unitarios RBAC/CSRF pasan
+- [X] Tests de integración pasan con PostgreSQL/Redis
+- [X] Suite completa sin fallos (136 previas + nuevas)
+- [X] Cobertura global `>= 75 %`
+- [X] `ruff check .` OK
+- [X] `ruff format --check .` OK
+- [X] `mypy src` OK
+- [X] Sin secretos ni contraseñas en el diff
 
 #### Documentación
 
-- [ ] `docs/api.md` actualizado
-- [ ] `docs/roles-y-permisos.md` creado
-- [ ] `docs/seguridad.md` actualizado
-- [ ] `docs/pruebas.md` actualizado
-- [ ] `README.md`/`docs/instalacion-desarrollo.md` con el seed RBAC
-- [ ] ADR de CSRF registrada
+- [X] `docs/api.md` actualizado
+- [X] `docs/roles-y-permisos.md` creado
+- [X] `docs/seguridad.md` actualizado
+- [X] `docs/pruebas.md` actualizado
+- [X] `README.md`/`docs/instalacion-desarrollo.md` con el seed RBAC
+- [X] ADR de CSRF registrada
 
 ---
 

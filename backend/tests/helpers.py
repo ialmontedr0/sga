@@ -23,6 +23,7 @@ def build_test_settings(**overrides: Any) -> Settings:
         "max_request_body_bytes": 1024 * 1024,
         "auth_session_cookie_secure": False,
         "auth_csrf_cookie_secure": False,
+        "auth_csrf_enabled": True,
     }
     values.update(overrides)
     if values.get("environment") == Environment.PRODUCTION:

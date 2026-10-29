@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from judicial_archive.core.config import Settings
 from judicial_archive.core.enums import UserStatus
-from judicial_archive.core.security import hash_opaque_token, is_expired
+from judicial_archive.core.security import hash_opaque_token, is_expired, verify_opaque_token
 from judicial_archive.db.session import Database
 from judicial_archive.modules.auth.models import AuthSession
 from judicial_archive.modules.users.models import Permission, Role, RolePermission, User, UserRole
@@ -88,6 +88,16 @@ async def get_current_user(
 
     if user_obj.locked_until is not None and user_obj.locked_until > now:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Cuenta bloqueada")
+
+    unsafe_methods = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+    if settings.auth_csrf_enabled and request.method.upper() in unsafe_methods:
+        csrf_header = request.headers.get(settings.auth_csrf_header_name)
+        if (
+            not csrf_header
+            or not auth_session.csrf_token_hash
+            or not verify_opaque_token(csrf_header, auth_session.csrf_token_hash)
+        ):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token CSRF")
 
     # actualizar el last_seen_at
     auth_session.last_seen_at = now

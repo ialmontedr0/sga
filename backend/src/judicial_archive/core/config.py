@@ -113,6 +113,7 @@ class Settings(BaseSettings):
     auth_csrf_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     auth_csrf_cookie_path: str = "/"
     auth_csrf_max_age_seconds: int = Field(default=172800, ge=300, le=2592000)
+    auth_csrf_enabled: bool = True
 
     # Login protection
     auth_login_max_attempts: int = Field(default=5, ge=1, le=20)
@@ -210,6 +211,8 @@ class Settings(BaseSettings):
             problems.append("SameSite=None requiere Secure=True")
         if self.auth_csrf_cookie_samesite == "none" and not self.auth_csrf_cookie_secure:
             problems.append("SameSite=None requiere Secure=True")
+        if not self.auth_csrf_enabled:
+            problems.append("auth_csrf_enabled debe ser true en produccion")
         if problems:
             raise ValueError("Configuracion auth de produccion invalida:" + "; ".join(problems))
         return self

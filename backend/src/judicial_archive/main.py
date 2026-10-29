@@ -15,6 +15,7 @@ from judicial_archive.core.config import Environment, Settings, get_settings
 from judicial_archive.core.errors import register_exception_handlers
 from judicial_archive.core.logging import configure_logging
 from judicial_archive.core.middleware import (
+    CSRFMiddleware,
     RequestBodyLimitMiddleware,
     RequestContextMiddleware,
     TrustedHostMiddleware,
@@ -81,6 +82,13 @@ def create_app(settings: Settings | None = None, *, configure_logs: bool = True)
 
     register_exception_handlers(app)
     app.include_router(api_router, prefix=resolved_settings.api_v1_prefix)
+
+    # CSRF es el middlwr mas interno: los limites de cuerpo y host se evaluan antes. Los metodos seguros se ven afectados.
+    app.add_middleware(
+        CSRFMiddleware,
+        settings=resolved_settings,
+        exempt_paths=(f"{resolved_settings.api_v1_prefix}/auth/csrf",),
+    )
 
     # El ultimo middleware agregado es el mas externo.
     app.add_middleware(

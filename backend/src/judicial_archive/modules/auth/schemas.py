@@ -42,3 +42,7 @@ class ChangePasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class CsrfTokenResponse(BaseModel):
+    csrf_token: str

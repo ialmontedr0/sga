@@ -43,8 +43,7 @@ $env:TEST_REDIS_URL = "redis://localhost:6379/15"
 uv run pytest tests/integration -q --no-cov -n 0
 ```
 
-Usar un usuario con permisos sobre `public` en `sga_test`. No ejecutar en
-paralelo contra la misma base ni imprimir credenciales.
+Usar un usuario con permisos sobre `public` en `sga_test`. No ejecutar en paralelo contra la misma base ni imprimir credenciales.
 
 ## Documentación
 
@@ -60,6 +59,4 @@ paralelo contra la misma base ni imprimir credenciales.
 ## Estado
 
 B3 completada: configuración, errores uniformes, logging, middleware,
-salud, paginación y OpenAPI común. Incluye el esquema persistente de B2 y
-sus migraciones; todavía no hay endpoints de negocio ni autenticación.
-Validación: 130 pruebas, cobertura global 95,03 %, `core` 95 %.
+salud, paginación y OpenAPI común. Incluye el esquema persistente de B2 y sus migraciones; todavía no hay endpoints de negocio ni autenticación. Validación: 130 pruebas, cobertura global 95,03 %, `core` 95 %.

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from judicial_archive.core.config import get_settings
 from judicial_archive.core.enums import CatalogStatus
 from judicial_archive.db.base import Base
+from judicial_archive.db.seed_rbac import seed_rbac
 from judicial_archive.db.session import Database
 from judicial_archive.modules.courts.models import (
     Court,
@@ -230,6 +231,9 @@ async def seed_database(session: AsyncSession) -> None:
     await _ensure_party_role(session)
     await _ensure_numbering_policy(session)
     await _ensure_timezone_setting(session)
+
+    # permisos y matriz rol-permiso
+    await seed_rbac(session)
 
     await session.commit()
 

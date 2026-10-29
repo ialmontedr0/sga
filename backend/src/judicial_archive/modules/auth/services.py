@@ -20,7 +20,12 @@ from judicial_archive.core.security import (
 )
 from judicial_archive.modules.auth.models import AuthSession, LoginAttempt, SecurityEvent
 from judicial_archive.modules.auth.repositories import AuthRepository
-from judicial_archive.modules.auth.schemas import ChangePasswordRequest, LoginRequest, UserMe
+from judicial_archive.modules.auth.schemas import (
+    ChangePasswordRequest,
+    LoginRequest,
+    SessionInfo,
+    UserMe,
+)
 from judicial_archive.modules.users.models import Permission, Role, RolePermission, User, UserRole
 
 
@@ -50,6 +55,43 @@ def _get_user_agent(request: Request) -> str | None:
     return ua[:512]
 
 
+async def list_user_sessions(
+    session: AsyncSession,
+    user_id: UUID,
+) -> list[SessionInfo]:
+    res = await session.execute(
+        select(AuthSession)
+        .where(
+            AuthSession.user_id == user_id,
+            AuthSession.revoked_at.is_(None),
+        )
+        .order_by(AuthSession.created_at.desc())
+    )
+    return [
+        SessionInfo(
+            id=auth_session.id,
+            created_at=auth_session.created_at,
+            last_seen_at=auth_session.last_seen_at,
+            expires_at=auth_session.expires_at,
+            ip_address=str(auth_session.ip_address) if auth_session.ip_address else None,
+            user_agent=auth_session.user_agent,
+        )
+        for auth_session in res.scalars().all()
+    ]
+
+
+def set_csrf_cookie(response: Response, settings: Settings, token: str) -> None:
+    response.set_cookie(
+        key=settings.auth_csrf_cookie_name,
+        value=token,
+        httponly=settings.auth_csrf_cookie_httponly,
+        secure=settings.auth_csrf_cookie_secure,
+        samesite=settings.auth_csrf_cookie_samesite,
+        path=settings.auth_csrf_cookie_path,
+        max_age=settings.auth_csrf_max_age_seconds,
+    )
+
+
 def _set_session_cookies(
     response: Response, settings: Settings, session_token: str, csrf_token: str
 ) -> None:
@@ -62,15 +104,7 @@ def _set_session_cookies(
         path=settings.auth_session_cookie_path,
         max_age=settings.auth_session_max_age_seconds,
     )
-    response.set_cookie(
-        key=settings.auth_csrf_cookie_name,
-        value=csrf_token,
-        httponly=settings.auth_csrf_cookie_httponly,
-        secure=settings.auth_csrf_cookie_secure,
-        samesite=settings.auth_csrf_cookie_samesite,
-        path=settings.auth_csrf_cookie_path,
-        max_age=settings.auth_csrf_max_age_seconds,
-    )
+    set_csrf_cookie(response, settings, csrf_token)
 
 
 def _clear_session_cookies(response: Response, settings: Settings) -> None:
@@ -195,8 +229,13 @@ async def login(
     if not user.password_changed_at:
         user.password_changed_at = now
 
+    csrf_token = request.cookies.get(settings.auth_csrf_cookie_name)
+    if settings.auth_csrf_enabled and not csrf_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token CSRF ausente")
+    if not csrf_token:
+        csrf_token = generate_csrf_token()
+
     session_token = generate_session_token()
-    csrf_token = generate_csrf_token()
     token_hash = hash_opaque_token(session_token)
     csrf_hash = hash_opaque_token(csrf_token)
 
@@ -302,6 +341,33 @@ async def logout_all(
     _clear_session_cookies(response, settings)
     await session.commit()
     return {"message": "Todas las sesiones han sido cerradas"}
+
+
+async def revoke_user_session(
+    request: Request, session: AsyncSession, actor: User, user_id: UUID, session_id: UUID
+) -> dict[str, str]:
+    res = await session.execute(
+        select(AuthSession).where(AuthSession.id == session_id, AuthSession.user_id == user_id)
+    )
+    target = res.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesion no encontrada")
+
+    if target.revoked_at is None:
+        target.revoked_at = datetime.now(UTC)
+        target.revoked_by = actor.id
+        target.revocation_reason = "revoked_by_admin"
+
+    session.add(
+        SecurityEvent(
+            event_type="session_revoked_by_admin",
+            user_id=user_id,
+            actor_id=actor.id,
+            details={"session_id": str(session_id)},
+        )
+    )
+    await session.commit()
+    return {"message": "Sesion revocada correctamente"}
 
 
 async def get_me(session: AsyncSession, current_user: User) -> UserMe:

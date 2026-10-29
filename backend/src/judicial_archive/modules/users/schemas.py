@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -29,7 +30,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
     display_name: str | None = Field(default=None, min_length=1, max_length=160)
-    status: str | None = None
+    status: Literal["ACTIVE", "INACTIVE", "SUSPENDED", "LOCKED"] | None = None
     must_change_password: bool | None = None
 
 
@@ -55,3 +56,12 @@ class AssignRoles(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class UserDetail(UserOut):
+    permissions: list[str] = Field(default_factory=list)
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=12, max_length=1024)
+    must_change_password: bool = True
