@@ -115,3 +115,14 @@ def test_unique_compuesta_de_caja() -> None:
         if isinstance(constraint, UniqueConstraint)
     }
     assert "uq_boxes_id_box_type" in names
+
+
+def test_area_code_tiene_restriccion_unica() -> None:
+    table = judicial_archive.db.base.Base.metadata.tables["areas"]
+    unique_columns = {
+        tuple(column.name for column in constraint.columns)
+        for constraint in table.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+
+    assert ("code",) in unique_columns

@@ -809,7 +809,7 @@ código ni semillas.
 -   Los eventos de autenticación relevantes quedan registrados sin
     guardar secretos.
 
-## Estado de la fase: Pendiente
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
 
 # Fase B5 --- Catálogos y configuración administrativa
@@ -851,49 +851,6 @@ fuente.
 
 ## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
-
-Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
-
-Fase B5 --- Catálogos y configuración administrativa
-
-### Objetivo
-
-Hacer configurables los datos institucionales sin modificar el código
-fuente.
-
-### Actividades
-
--   CRUD de tribunales.
--   Gestión de códigos compartidos, estado y vigencia.
--   CRUD de tipos de resolución y reglas de prefijos.
--   CRUD de tipos de caja si se decide permitir extensiones.
--   CRUD de áreas y anaqueles.
--   Configuración de bandejas, posiciones y capacidad.
--   Configuración de política de numeración de cajas.
--   Validar cambios que afecten entidades existentes.
--   Añadir filtros, búsqueda, paginación y auditoría.
--   Definir reglas de desactivación y no de borrado físico cuando
-    existan dependencias.
-
-### Entregables
-
--   Endpoints y servicios de catálogos.
--   Validadores configurables.
--   Datos iniciales confirmados.
--   Pruebas CRUD y de dependencias.
--   Documentación de configuración.
-
-### Criterios de aceptación
-
--   Un administrador autorizado puede mantener los catálogos.
--   Desactivar un tribunal no rompe datos históricos.
--   Un cambio de capacidad no elimina posiciones ocupadas de forma
-    silenciosa.
--   Los códigos visibles no sustituyen las claves internas.
-
-En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB5_guide.md, asi queda todo documentado de una vez.
-
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor, sigue el mismo patron de guia como el phaseB1_guide.md.
 
 
 # Fase B6 --- Inventario físico y ubicaciones

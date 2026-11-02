@@ -73,6 +73,17 @@ Consulta PostgreSQL y Redis con timeout. Respuesta 200 si ambos están
 
 - `/docs` (Swagger UI) y `/openapi.json`, solo si `SGA_DOCS_ENABLED=true`.
 - En producción se deshabilitan por defecto.
+- Prefijo `/api/v1`.
+- Tabla de endpoints por recurso: método, ruta, permiso, parámetros y respuestas.
+- Paginación común: `page`, `page_size`, `sort_by`, `order`.
+- Filtros: `q`, `status`, `court_id`, `resolution_type_id`, `area_id`, `shelf_id`, `tray_id`.
+- Errores: `400`, `403`, `404`, `409`, `422`.
+- Regla: no existen endpoints `DELETE` para catálogos.
+- `GET /box-types` es solo lectura.
+- `POST /identifier-profiles/{id}/replace` y `POST /numbering-policies/{id}/deactivate`.
+- `POST /shelves/{id}/capacity/apply` con `expected_version`.
+- `GET /settings` y `GET|PUT /settings/{key}`.
+- CSRF obligatorio en métodos mutables.
 
 ## Paginación
 

@@ -66,6 +66,16 @@ async def _expect_insert_violation(
     await _expect_integrity_error(session, table.insert().values(**values))
 
 
+@pytest.mark.asyncio
+async def test_area_code_is_unique(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        await _insert(session, "areas", code="Z", name="Zona Z")
+        await session.commit()
+        await _expect_insert_violation(session, "areas", code="Z", name="Zona duplicada")
+
+
 @pytest_asyncio.fixture
 async def baseline(session_factory: async_sessionmaker[AsyncSession]) -> Baseline:
     async with session_factory() as session:

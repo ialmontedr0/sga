@@ -1,0 +1,10 @@
+- BR-CAT-01: desactivar no borra.
+- BR-CAT-02: códigos de tribunal pueden repetirse.
+- BR-CAT-03: área única por código.
+- BR-CAT-04: no mezclar catálogos con datos operativos.
+- BR-CAT-05: perfiles versionados y estrictos.
+- BR-CAT-06: numeración transaccional y sin reutilización.
+- BR-LOC-01: capacidad teórica, ocupación y disponibilidad separadas.
+- BR-LOC-02: no borrar posiciones; retirar.
+- BR-LOC-03: no reducir capacidad sobre posiciones ocupadas/bloqueadas.
+- BR-LOC-04: no asignar dos cajas activas a una posición; B7 lo garantiza con constraint/transacción.

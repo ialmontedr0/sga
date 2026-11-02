@@ -8,6 +8,7 @@ import pytest
 import pytest_asyncio
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -18,7 +19,11 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 import judicial_archive.models  # noqa: F401
+from judicial_archive.core.config import Settings
 from judicial_archive.db.base import Base
+from judicial_archive.db.seed import seed_database
+from judicial_archive.main import create_app
+from tests.integration.auth_helpers import seed_admin
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
@@ -112,3 +117,25 @@ async def db_session(
             yield session
         finally:
             await session.rollback()
+
+
+@pytest_asyncio.fixture
+async def api_client(
+    migrated_database: str,
+    session_factory: async_sessionmaker[AsyncSession],
+    settings: Settings,
+) -> AsyncIterator[TestClient]:
+    await seed_admin(session_factory)
+    app = create_app(settings, configure_logs=False)
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest_asyncio.fixture
+async def seeded_api_client(
+    api_client: TestClient,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> AsyncIterator[TestClient]:
+    async with session_factory() as session:
+        await seed_database(session)
+    yield api_client

@@ -126,3 +126,11 @@ Umbral global: `75 %` (`fail_under` en `pyproject.toml`). Objetivo del cierre:
 - Nunca datos judiciales reales.
 - La base de pruebas se trunca entre tests; no depender del orden.
 - Los tests que comparten BD no deben ejecutarse con `-n auto`.
+
+### En B5
+
+- Comandos unitarios/integración.
+- Requisito de PostgreSQL real.
+- Casos obligatorios de B5.
+- Limitación de `-n 0` por el estado de sesión y las secuencias.
+- Que las secuencias de prueba se limpian explícitamente.

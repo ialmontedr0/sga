@@ -52,6 +52,16 @@ La fuente de verdad del catálogo y de la matriz es `src/judicial_archive/db/see
 | Reportes | Sí | Exportar | Consultar | No | Consultar |
 | Configuración global | Sí | Consultar | No | No | No |
 
+## Matriz B5
+
+| Acción | Permiso |
+|---|---|
+| Listar/ver catálogos | `catalog.read` |
+| Crear/editar/desactivar tribunales, resoluciones, perfiles, roles, áreas, anaqueles, bandejas, posiciones | `catalog.manage` |
+| Consultar configuración | `settings.read` |
+| Crear/editar políticas de numeración y settings | `settings.manage` |
+| Aplicar capacidad | `catalog.manage` |
+
 ## Cómo se aplica
 
 1. `get_current_user` valida la cookie `sga_session` y la sesión en `auth_sessions`.

@@ -29,6 +29,7 @@ from judicial_archive.db.mixins import (
 class Area(UUIDPrimaryKeyMixin, TimestampMixin, OptimisticLockMixin, Base):
     __tablename__ = "areas"
     __table_args__ = (
+        UniqueConstraint("code", name="uq_areas_code"),
         check_in("status", AreaStatus, name="ck_areas_status"),
         CheckConstraint("code ~ '^[A-Z][A-Z0-9-]{0,15}$'", name="ck_areas_code_format"),
         CheckConstraint("length(btrim(name)) > 0", name="ck_areas_name_not_empty"),

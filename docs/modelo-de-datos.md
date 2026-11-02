@@ -1,0 +1,8 @@
+- `uq_areas_code` y el motivo.
+- Que `Court.code_raw` no es único y que `code_normalized` es solo búsqueda.
+- `Shelf.capacity_positions` es calculada.
+- `Tray.position_count` se deriva de posiciones activas.
+- `Position` no se borra; se retira.
+- `IdentifierFormatProfile` es versionado.
+- `NumberingPolicy.sequence_name` es inmutable tras el alta.
+- `AuditEvent.metadata_json` se serializa como `metadata` en la API.

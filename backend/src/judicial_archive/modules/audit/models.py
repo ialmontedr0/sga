@@ -54,9 +54,15 @@ class AuditEvent(UUIDPrimaryKeyMixin, Base):
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[UUID | None] = mapped_column(postgresql.UUID(as_uuid=True), nullable=True)
-    before_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    after_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, nullable=True)
+    before_data: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    after_data: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(
+        "metadata", JSONB(none_as_null=True), nullable=True
+    )
     request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
