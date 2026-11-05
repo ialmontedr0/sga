@@ -179,6 +179,11 @@ class PositionBlock(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "length(btrim(reason)) > 0",
             name="ck_position_blocks_reason_not_empty",
         ),
+        CheckConstraint(
+            "cancelled_at IS NULL OR "
+            "(cancellation_reason IS NOT NULL AND length(btrim(cancellation_reason)) > 0)",
+            name="ck_position_blocks_cancellation_reason",
+        ),
         Index(
             "ix_position_blocks_shelf_active",
             "shelf_id",
@@ -214,6 +219,10 @@ class PositionBlock(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     cancelled_by: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    cancellation_reason: Mapped[str | None] = mapped_column(
+        String(500),
         nullable=True,
     )
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)

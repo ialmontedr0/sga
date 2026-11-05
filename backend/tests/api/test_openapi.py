@@ -6,7 +6,7 @@ from judicial_archive.main import create_app
 from tests.helpers import build_test_settings
 
 
-def test_openapi_contains_only_real_health_paths() -> None:
+def test_openapi_contains_health_and_location_paths() -> None:
     app = create_app(build_test_settings(docs_enabled=True), configure_logs=False)
     with TestClient(app) as client:
         response = client.get("/openapi.json")
@@ -14,7 +14,8 @@ def test_openapi_contains_only_real_health_paths() -> None:
     paths = response.json()["paths"]
     assert "/api/v1/health/live" in paths
     assert "/api/v1/health/ready" in paths
-    assert not any("boxes" in path for path in paths)
+    assert "/api/v1/locations/occupancy" in paths
+    assert "/api/v1/locations/boxes/{box_id}/assign" in paths
 
 
 def test_docs_available_when_enabled() -> None:

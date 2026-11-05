@@ -6,7 +6,7 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import Table, func, select
+from sqlalchemy import Table, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -885,4 +885,138 @@ async def test_resolved_inventory_finding_requires_resolution(
             finding_status="RESOLVED",
             resolved_at=func.now(),
             resolved_by=baseline.user1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_box_cannot_have_two_open_movements(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        await _insert(
+            session,
+            "box_movements",
+            box_id=baseline.box_exp,
+            movement_type="TRANSFER",
+            movement_status="PLANNED",
+            occurred_at=func.now(),
+            reason="Movimiento abierto",
+        )
+        await session.commit()
+
+    async with session_factory() as session:
+        await _expect_insert_violation(
+            session,
+            "box_movements",
+            box_id=baseline.box_exp,
+            movement_type="TRANSFER",
+            movement_status="IN_TRANSIT",
+            occurred_at=func.now(),
+            reason="Segundo movimiento abierto",
+        )
+
+
+@pytest.mark.asyncio
+async def test_two_pending_boxes_cannot_occupy_same_position(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        await _insert(
+            session,
+            "boxes",
+            court_id=baseline.court,
+            year=2026,
+            visible_number="9201",
+            custody_status="PENDING_VERIFICATION",
+            current_position_id=baseline.position,
+        )
+        await session.commit()
+
+    async with session_factory() as session:
+        await _expect_insert_violation(
+            session,
+            "boxes",
+            court_id=baseline.court,
+            year=2026,
+            visible_number="9202",
+            custody_status="PENDING_VERIFICATION",
+            current_position_id=baseline.position,
+        )
+
+
+@pytest.mark.asyncio
+async def test_pending_box_requires_position(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        await _expect_insert_violation(
+            session,
+            "boxes",
+            court_id=baseline.court,
+            year=2026,
+            visible_number="9203",
+            custody_status="PENDING_VERIFICATION",
+        )
+
+
+@pytest.mark.asyncio
+async def test_box_location_history_rejects_update(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        history_id = await _insert(
+            session,
+            "box_location_history",
+            box_id=baseline.box_exp,
+            to_custody_status="UNKNOWN",
+            to_location_precision="UNKNOWN",
+            reason="Historial B6",
+        )
+        await session.commit()
+
+    async with session_factory() as session:
+        table = _table("box_location_history")
+        await _expect_integrity_error(
+            session,
+            table.update().where(table.c.id == history_id).values(reason="alterado"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_box_location_history_rejects_delete(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        history_id = await _insert(
+            session,
+            "box_location_history",
+            box_id=baseline.box_exp,
+            to_custody_status="UNKNOWN",
+            to_location_precision="UNKNOWN",
+            reason="Historial B6",
+        )
+        await session.commit()
+
+    async with session_factory() as session:
+        table = _table("box_location_history")
+        await _expect_integrity_error(
+            session,
+            table.delete().where(table.c.id == history_id),
+        )
+
+
+@pytest.mark.asyncio
+async def test_box_location_history_rejects_truncate(
+    baseline: Baseline,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_factory() as session:
+        await _expect_integrity_error(
+            session,
+            text("TRUNCATE TABLE box_location_history"),
         )

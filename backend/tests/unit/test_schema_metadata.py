@@ -11,6 +11,7 @@ EXPECTED_TABLES = {
     "audit_events",
     "auth_sessions",
     "box_labels",
+    "box_location_history",
     "box_movements",
     "box_number_history",
     "boxes",
@@ -53,6 +54,7 @@ EXPECTED_TABLES = {
 
 EXPECTED_PARTIAL_INDEXES = {
     "uq_boxes_current_position_occupied",
+    "uq_box_movements_open_box",
     "uq_identifier_format_profiles_active",
     "uq_file_attachments_case_primary",
     "uq_file_attachments_admin_primary",

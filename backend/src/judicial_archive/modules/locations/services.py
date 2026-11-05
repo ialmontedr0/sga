@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import replace
+from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from fastapi import Request
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,10 +22,18 @@ from judicial_archive.core.text import (
     ensure_tray_code,
 )
 from judicial_archive.modules.audit.services import record_audit_event
-from judicial_archive.modules.locations import capacity, schemas
+from judicial_archive.modules.boxes.models import Box
+from judicial_archive.modules.boxes.repositories import BoxRepository
+from judicial_archive.modules.boxes.schemas import BoxSummaryOut
+from judicial_archive.modules.locations import capacity, occupancy, schemas
 from judicial_archive.modules.locations.models import Area, Position, Shelf, Tray
 from judicial_archive.modules.locations.repositories import LocationsRepository
+from judicial_archive.modules.movements.repositories import MovementsRepository
 from judicial_archive.modules.users.models import User
+
+OccupancyScope = Literal["GLOBAL", "AREA", "SHELF", "TRAY"]
+
+PositionOccupancyState = Literal["EMPTY", "OCCUPIED", "BLOCKED", "RETIRED"]
 
 
 def _area_snapshot(area: Area) -> dict[str, object]:
@@ -799,3 +811,551 @@ async def activate_position(
     await session.commit()
     await session.refresh(position)
     return schemas.PositionOut.model_validate(position)
+
+
+## Helpers y servicios
+def _path_out(
+    row: tuple[Position, Tray, Shelf, Area],
+) -> schemas.PositionPathOut:
+    position, tray, shelf, area = row
+    return schemas.PositionPathOut(
+        position_id=position.id,
+        position_code=position.code,
+        label=position.label,
+        position_status=position.status,
+        tray=schemas.TrayPathOut(id=tray.id, code=tray.code, name=tray.name),
+        shelf=schemas.ShelfPathOut(id=shelf.id, code=shelf.code, name=shelf.name),
+        area=schemas.AreaPathOut(id=area.id, code=area.code, name=area.name),
+    )
+
+
+def _box_summary(box: Box) -> BoxSummaryOut:
+    return BoxSummaryOut(
+        box_id=box.id,
+        visible_number=box.visible_number,
+        box_type=box.box_type,
+        year=box.year,
+        court_id=box.court_id,
+        lifecycle_status=box.lifecycle_status,
+        custody_status=box.custody_status,
+        location_precision=box.location_precision,
+        location_state=occupancy.classify_location_state(box),
+    )
+
+
+def _summary_out(
+    scope: OccupancyScope,
+    scope_id: UUID | None,
+    counts: occupancy.OccupancyCounts,
+) -> schemas.OccupancySummaryOut:
+    return schemas.OccupancySummaryOut(
+        scope=scope,
+        scope_id=scope_id,
+        configured_capacity=counts.configured_capacity,
+        visible_capacity=counts.visible_capacity,
+        occupied_positions=counts.occupied_positions,
+        available_positions=counts.available_positions,
+        blocked_positions=counts.blocked_positions,
+        retired_positions=counts.retired_positions,
+        occupancy_rate=counts.occupancy_rate,
+        unlocated_boxes=counts.unlocated_boxes,
+        pending_confirmation_boxes=counts.pending_confirmation_boxes,
+        in_transit_boxes=counts.in_transit_boxes,
+        capacity_matches_configuration=counts.capacity_matches_configuration,
+        capacity_mismatches=[
+            schemas.CapacityMismatchOut(
+                shelf_id=mismatch.shelf_id,
+                shelf_code=mismatch.shelf_code,
+                configured=mismatch.configured,
+                visible=mismatch.visible,
+                delta=mismatch.delta,
+            )
+            for mismatch in counts.capacity_mismatches
+        ],
+        conflicts=list(counts.conflicts),
+    )
+
+
+def _boxes_by_position(boxes: Sequence[Box]) -> dict[UUID, Box]:
+    return {box.current_position_id: box for box in boxes if box.current_position_id is not None}
+
+
+def _tray_counts(
+    positions: Sequence[Position],
+    boxes_by_position: dict[UUID, Box],
+) -> occupancy.OccupancyCounts:
+    visible = [position for position in positions if position.status != "RETIRED"]
+    retired = len(positions) - len(visible)
+    blocked = sum(1 for position in visible if position.status == "BLOCKED")
+    occupied = sum(
+        1
+        for position in visible
+        if position.id in boxes_by_position
+        and boxes_by_position[position.id].custody_status
+        in occupancy.ACTIVE_LOCATION_CUSTODY_STATUSES
+    )
+    available = max(0, len(visible) - occupied - blocked)
+    return occupancy.OccupancyCounts(
+        configured_capacity=None,
+        visible_capacity=len(visible),
+        occupied_positions=occupied,
+        available_positions=available,
+        blocked_positions=blocked,
+        retired_positions=retired,
+        occupancy_rate=round(occupied / len(visible), 4) if visible else 0.0,
+    )
+
+
+async def _location_totals(
+    session: AsyncSession,
+) -> tuple[int, int, int]:
+    unlocated = await session.scalar(
+        select(func.count())
+        .select_from(Box)
+        .where(
+            Box.current_position_id.is_(None),
+            Box.custody_status.in_(["UNKNOWN", "MISSING"]),
+        )
+    )
+    pending = await session.scalar(
+        select(func.count()).select_from(Box).where(Box.custody_status == "PENDING_VERIFICATION")
+    )
+    in_transit = await session.scalar(
+        select(func.count()).select_from(Box).where(Box.custody_status == "IN_TRANSIT")
+    )
+    return int(unlocated or 0), int(pending or 0), int(in_transit or 0)
+
+
+async def get_occupancy(
+    session: AsyncSession,
+    *,
+    area_id: UUID | None,
+    shelf_id: UUID | None,
+    tray_id: UUID | None,
+) -> schemas.OccupancySummaryOut:
+    repo = LocationsRepository(session)
+    scope: OccupancyScope = "GLOBAL"
+    scope_id: UUID | None = None
+
+    if tray_id is not None:
+        tray = await repo.get_tray(tray_id)
+        if tray is None:
+            raise NotFoundError("Bandeja no encontrada.")
+        positions = await repo.list_positions_for_scope(
+            area_id=None,
+            shelf_id=tray.shelf_id,
+            tray_id=tray.id,
+        )
+        boxes = await repo.list_boxes_for_positions([position.id for position in positions])
+        counts = _tray_counts(positions, _boxes_by_position(boxes))
+        scope = "TRAY"
+        scope_id = tray.id
+    elif shelf_id is not None:
+        shelf = await repo.get_shelf(shelf_id)
+        if shelf is None:
+            raise NotFoundError("Anaquel no encontrado.")
+        positions = await repo.list_positions_for_scope(
+            area_id=None,
+            shelf_id=shelf.id,
+            tray_id=None,
+        )
+        boxes = await repo.list_boxes_for_positions([position.id for position in positions])
+        counts = occupancy.compute_shelf_occupancy(
+            shelf,
+            positions,
+            _boxes_by_position(boxes),
+        )
+        scope = "SHELF"
+        scope_id = shelf.id
+    else:
+        shelves = await repo.list_shelves_for_scope(
+            area_id=area_id,
+            shelf_id=None,
+        )
+        trays = await repo.list_trays_for_scope(
+            area_id=area_id,
+            shelf_id=None,
+            tray_id=None,
+        )
+        tray_to_shelf = {tray.id: tray.shelf_id for tray in trays}
+        positions = await repo.list_positions_for_scope(
+            area_id=area_id,
+            shelf_id=None,
+            tray_id=None,
+        )
+        boxes = await repo.list_boxes_for_positions([position.id for position in positions])
+        boxes_by_position = _boxes_by_position(boxes)
+        counts_by_shelf = []
+        for shelf in shelves:
+            shelf_positions = [
+                position
+                for position in positions
+                if tray_to_shelf.get(position.tray_id) == shelf.id
+            ]
+            counts_by_shelf.append(
+                occupancy.compute_shelf_occupancy(
+                    shelf,
+                    shelf_positions,
+                    boxes_by_position,
+                )
+            )
+        counts = occupancy.merge_counts(counts_by_shelf)
+        scope = "AREA" if area_id is not None else "GLOBAL"
+        scope_id = area_id
+
+    unlocated, pending, in_transit = await _location_totals(session)
+    counts = replace(
+        counts,
+        unlocated_boxes=unlocated,
+        pending_confirmation_boxes=pending,
+        in_transit_boxes=in_transit,
+    )
+    return _summary_out(scope, scope_id, counts)
+
+
+async def list_position_occupancy(
+    session: AsyncSession,
+    *,
+    params: PageParams,
+    area_id: UUID | None,
+    shelf_id: UUID | None,
+    tray_id: UUID | None,
+    state: str | None,
+    q: str | None,
+) -> Page[schemas.PositionOccupancyOut]:
+    rows, total = await LocationsRepository(session).list_position_occupancy(
+        area_id=area_id,
+        shelf_id=shelf_id,
+        tray_id=tray_id,
+        state=state,
+        q=q,
+        offset=params.offset,
+        limit=params.limit,
+    )
+    items = []
+    for position, tray, shelf, area, box in rows:
+        items.append(
+            schemas.PositionOccupancyOut(
+                position=_path_out((position, tray, shelf, area)),
+                state=occupancy.position_occupancy_state(position, box),
+                box=_box_summary(box) if box is not None else None,
+                block_id=None,
+            )
+        )
+    return Page[schemas.PositionOccupancyOut].build(
+        items,
+        total=total,
+        params=params,
+    )
+
+
+async def list_unlocated_boxes(
+    session: AsyncSession,
+    *,
+    params: PageParams,
+    state: str | None,
+    q: str | None,
+) -> Page[schemas.UnlocatedBoxOut]:
+    rows, total = await BoxRepository(session).list_unlocated(
+        state=state,
+        q=q,
+        offset=params.offset,
+        limit=params.limit,
+    )
+    movements = MovementsRepository(session)
+    items = []
+    for box in rows:
+        last = await movements.get_last_for_box(box.id)
+        items.append(
+            schemas.UnlocatedBoxOut(
+                box=_box_summary(box),
+                location_state=occupancy.classify_unlocated_state(box),
+                last_movement_at=last.occurred_at if last is not None else None,
+            )
+        )
+    return Page[schemas.UnlocatedBoxOut].build(items, total=total, params=params)
+
+
+async def get_location_plan(
+    session: AsyncSession,
+    *,
+    area_id: UUID | None,
+    shelf_id: UUID | None,
+    include_positions: bool,
+) -> schemas.LocationPlanOut:
+    repo = LocationsRepository(session)
+    area: Area | None = None
+    if area_id is not None:
+        area = await repo.get_area(area_id)
+        if area is None:
+            raise NotFoundError("Area no encontrada.")
+    if shelf_id is not None:
+        shelf = await repo.get_shelf(shelf_id)
+        if shelf is None:
+            raise NotFoundError("Anaquel no encontrado.")
+        if area is not None and shelf.area_id != area.id:
+            raise InvalidParameterError("El anaquel no pertenece al area indicada.")
+
+    shelves = await repo.list_shelves_for_scope(area_id=area_id, shelf_id=shelf_id)
+    area_cache: dict[UUID, Area] = {}
+    if area is not None:
+        area_cache[area.id] = area
+    for shelf_row in shelves:
+        if shelf_row.area_id not in area_cache:
+            area_row = await repo.get_area(shelf_row.area_id)
+            if area_row is not None:
+                area_cache[area_row.id] = area_row
+    trays = await repo.list_trays_for_scope(
+        area_id=area_id,
+        shelf_id=shelf_id,
+        tray_id=None,
+    )
+    positions = await repo.list_positions_for_scope(
+        area_id=area_id,
+        shelf_id=shelf_id,
+        tray_id=None,
+    )
+    if include_positions and len(positions) > 5000:
+        raise InvalidParameterError(
+            "El plano solicitado supera el maximo de 5000 posiciones.",
+            details={"max_positions": 5000, "requested": len(positions)},
+        )
+    boxes = await repo.list_boxes_for_positions([position.id for position in positions])
+    boxes_by_position = _boxes_by_position(boxes)
+    tray_by_id = {tray.id: tray for tray in trays}
+    trays_by_shelf: dict[UUID, list[Tray]] = defaultdict(list)
+    for tray in trays:
+        trays_by_shelf[tray.shelf_id].append(tray)
+    positions_by_tray: dict[UUID, list[Position]] = defaultdict(list)
+    for position in positions:
+        positions_by_tray[position.tray_id].append(position)
+
+    plan_shelves = []
+    counts_by_shelf = []
+    for shelf in shelves:
+        shelf_positions = [
+            position
+            for position in positions
+            if tray_by_id.get(position.tray_id)
+            and tray_by_id[position.tray_id].shelf_id == shelf.id
+        ]
+        counts = occupancy.compute_shelf_occupancy(
+            shelf,
+            shelf_positions,
+            boxes_by_position,
+        )
+        counts_by_shelf.append(counts)
+        plan_trays = []
+        for tray in sorted(trays_by_shelf.get(shelf.id, []), key=lambda item: item.code):
+            tray_positions = positions_by_tray.get(tray.id, [])
+            tray_counts = _tray_counts(tray_positions, boxes_by_position)
+            plan_positions = None
+            if include_positions:
+                plan_positions = []
+                for position in sorted(tray_positions, key=lambda item: item.code):
+                    box = boxes_by_position.get(position.id)
+                    path_area = area_cache.get(shelf.area_id)
+                    if path_area is None:
+                        continue
+                    path = (position, tray, shelf, path_area)
+                    plan_positions.append(
+                        schemas.LocationPlanPositionOut(
+                            position=_path_out(path),
+                            state=occupancy.position_occupancy_state(position, box),
+                            box=_box_summary(box) if box is not None else None,
+                            block_id=None,
+                        )
+                    )
+            plan_trays.append(
+                schemas.LocationPlanTrayOut(
+                    tray=schemas.TrayPathOut(
+                        id=tray.id,
+                        code=tray.code,
+                        name=tray.name,
+                    ),
+                    visible_capacity=tray_counts.visible_capacity,
+                    occupied_positions=tray_counts.occupied_positions,
+                    positions=plan_positions,
+                )
+            )
+        plan_shelves.append(
+            schemas.LocationPlanShelfOut(
+                shelf=schemas.ShelfPathOut(
+                    id=shelf.id,
+                    code=shelf.code,
+                    name=shelf.name,
+                ),
+                configured_capacity=shelf.capacity_positions,
+                visible_capacity=counts.visible_capacity,
+                occupied_positions=counts.occupied_positions,
+                available_positions=counts.available_positions,
+                blocked_positions=counts.blocked_positions,
+                trays=plan_trays,
+            )
+        )
+
+    counts = occupancy.merge_counts(counts_by_shelf)
+    unlocated, pending, in_transit = await _location_totals(session)
+    counts = replace(
+        counts,
+        unlocated_boxes=unlocated,
+        pending_confirmation_boxes=pending,
+        in_transit_boxes=in_transit,
+    )
+    area_out = (
+        schemas.AreaPathOut(id=area.id, code=area.code, name=area.name)
+        if area is not None
+        else None
+    )
+    return schemas.LocationPlanOut(
+        area=area_out,
+        shelves=plan_shelves,
+        summary=_summary_out(
+            "SHELF" if shelf_id is not None else ("AREA" if area_id else "GLOBAL"),
+            shelf_id or area_id,
+            counts,
+        ),
+    )
+
+
+async def scan(
+    session: AsyncSession,
+    *,
+    box_number: str | None,
+    position_id: UUID | None,
+) -> schemas.ScanResponse:
+    if (box_number is None) == (position_id is None):
+        raise InvalidParameterError("Debe indicar exactamente box_number o position_id.")
+    repo = LocationsRepository(session)
+
+    if box_number is not None:
+        cleaned = box_number.strip()
+        if not cleaned:
+            raise InvalidParameterError("El numero de caja no puede estar vacio.")
+        box = await BoxRepository(session).get_by_visible_number(cleaned)
+        if box is None:
+            return schemas.ScanResponse(
+                kind="UNREGISTERED_BOX",
+                box_number=cleaned,
+                operable=False,
+                message="Caja no registrada en el sistema.",
+            )
+        current_path = (
+            await repo.get_position_path(box.current_position_id)
+            if box.current_position_id
+            else None
+        )
+        state = occupancy.classify_location_state(box)
+        messages = {
+            "CONFIRMED": "Caja ubicada y confirmada.",
+            "PENDING_CONFIRMATION": "Caja ubicada, pendiente de confirmacion.",
+            "IN_RECONCILIATION": "Caja en conciliacion.",
+            "ON_LOAN": "Caja prestada; no esta en su posicion habitual.",
+            "IN_TRANSIT": "Caja en transito.",
+            "MISSING": "Caja marcada como no localizada.",
+            "UNASSIGNED": "Caja registrada sin ubicacion.",
+        }
+        return schemas.ScanResponse(
+            kind="BOX",
+            box=_box_summary(box),
+            current_position=_path_out(current_path) if current_path else None,
+            location_state=state,
+            operable=occupancy.is_operable(box),
+            message=messages.get(state, "Estado de ubicacion desconocido."),
+        )
+
+    if position_id is None:
+        raise InvalidParameterError("Debe indicar exactamente box_number o position_id.")
+
+    path = await repo.get_position_path(position_id)
+
+    if path is None:
+        raise NotFoundError("Posicion no encontrada.")
+
+    position = path[0]
+    box = await repo.get_box_at_position(position.id)
+    state = occupancy.position_occupancy_state(position, box)
+
+    messages = {
+        "EMPTY": "Posicion vacia y disponible.",
+        "OCCUPIED": "Posicion ocupada.",
+        "BLOCKED": "Posicion bloqueada.",
+        "RETIRED": "Posicion retirada.",
+    }
+
+    return schemas.ScanResponse(
+        kind="POSITION",
+        position=_path_out(path),
+        position_state=state,
+        box=_box_summary(box) if box is not None else None,
+        message=messages[state],
+    )
+
+
+async def occupancy_report(
+    session: AsyncSession,
+    *,
+    area_id: UUID | None,
+    shelf_id: UUID | None,
+) -> schemas.OccupancyReportOut:
+    repo = LocationsRepository(session)
+    shelves = await repo.list_shelves_for_scope(area_id=area_id, shelf_id=shelf_id)
+    area_cache: dict[UUID, Area] = {}
+    rows: list[schemas.OccupancyReportRowOut] = []
+    counts_by_shelf: list[occupancy.OccupancyCounts] = []
+
+    for shelf in shelves:
+        area = area_cache.get(shelf.area_id)
+        if area is None:
+            area = await repo.get_area(shelf.area_id)
+            if area is None:
+                continue
+            area_cache[area.id] = area
+        positions = await repo.list_positions_for_scope(
+            area_id=None,
+            shelf_id=shelf.id,
+            tray_id=None,
+        )
+        boxes = await repo.list_boxes_for_positions([position.id for position in positions])
+        counts = occupancy.compute_shelf_occupancy(
+            shelf,
+            positions,
+            _boxes_by_position(boxes),
+        )
+        counts_by_shelf.append(counts)
+        rows.append(
+            schemas.OccupancyReportRowOut(
+                area_code=area.code,
+                area_name=area.name,
+                shelf_code=shelf.code,
+                shelf_name=shelf.name,
+                configured_capacity=counts.configured_capacity,
+                visible_capacity=counts.visible_capacity,
+                occupied_positions=counts.occupied_positions,
+                available_positions=counts.available_positions,
+                blocked_positions=counts.blocked_positions,
+                retired_positions=counts.retired_positions,
+                occupancy_rate=counts.occupancy_rate,
+                capacity_matches=counts.capacity_matches_configuration,
+            )
+        )
+
+    totals = occupancy.merge_counts(counts_by_shelf)
+    unlocated, pending, in_transit = await _location_totals(session)
+    totals = replace(
+        totals,
+        unlocated_boxes=unlocated,
+        pending_confirmation_boxes=pending,
+        in_transit_boxes=in_transit,
+    )
+    return schemas.OccupancyReportOut(
+        generated_at=datetime.now(UTC),
+        area_id=area_id,
+        shelf_id=shelf_id,
+        totals=_summary_out(
+            "SHELF" if shelf_id else ("AREA" if area_id else "GLOBAL"),
+            shelf_id or area_id,
+            totals,
+        ),
+        rows=rows,
+    )

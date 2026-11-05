@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -11,6 +11,9 @@ from pydantic import (
     ValidationInfo,
     field_validator,
 )
+
+if TYPE_CHECKING:
+    from judicial_archive.modules.boxes.schemas import BoxSummaryOut
 
 AreaStatusValue = Literal["ACTIVE", "INACTIVE"]
 ShelfStatusValue = Literal["ACTIVE", "INACTIVE"]
@@ -94,7 +97,7 @@ class ShelfCreate(BaseModel):
         if (levels is None) != (value is None):
             raise ValueError("levels y positions_per_level deben enviarse juntos.")
 
-        if levels is not None and value is not None:
+        if levels is not None and value is not None and levels * value > 5000:
             raise ValueError("La capacidad total no puede superar 5000 posiciones.")
         return value
 
@@ -233,3 +236,204 @@ class PositionRetireRequest(BaseModel):
 class BoxTypeOut(BaseModel):
     value: str
     label: str
+
+
+class AreaPathOut(BaseModel):
+    id: UUID
+    code: str
+    name: str
+
+
+class ShelfPathOut(BaseModel):
+    id: UUID
+    code: str
+    name: str | None
+
+
+class TrayPathOut(BaseModel):
+    id: UUID
+    code: str
+    name: str | None
+
+
+class PositionPathOut(BaseModel):
+    position_id: UUID
+    position_code: str
+    label: str
+    position_status: str
+    tray: TrayPathOut
+    shelf: ShelfPathOut
+    area: AreaPathOut
+
+
+class CapacityMismatchOut(BaseModel):
+    shelf_id: UUID
+    shelf_code: str
+    configured: int
+    visible: int
+    delta: int
+
+
+class OccupancySummaryOut(BaseModel):
+    scope: Literal["GLOBAL", "AREA", "SHELF", "TRAY"]
+    scope_id: UUID | None
+    configured_capacity: int | None
+    visible_capacity: int
+    occupied_positions: int
+    available_positions: int
+    blocked_positions: int
+    retired_positions: int
+    occupancy_rate: float
+    unlocated_boxes: int
+    pending_confirmation_boxes: int
+    in_transit_boxes: int
+    capacity_matches_configuration: bool
+    capacity_mismatches: list[CapacityMismatchOut]
+    conflicts: list[str]
+
+
+class PositionOccupancyOut(BaseModel):
+    position: PositionPathOut
+    state: Literal["EMPTY", "OCCUPIED", "BLOCKED", "RETIRED"]
+    box: BoxSummaryOut | None
+    block_id: UUID | None
+
+
+class LocationPlanPositionOut(PositionOccupancyOut):
+    pass
+
+
+class LocationPlanTrayOut(BaseModel):
+    tray: TrayPathOut
+    visible_capacity: int
+    occupied_positions: int
+    positions: list[LocationPlanPositionOut] | None
+
+
+class LocationPlanShelfOut(BaseModel):
+    shelf: ShelfPathOut
+    configured_capacity: int | None
+    visible_capacity: int
+    occupied_positions: int
+    available_positions: int
+    blocked_positions: int
+    trays: list[LocationPlanTrayOut]
+
+
+class LocationPlanOut(BaseModel):
+    area: AreaPathOut | None
+    shelves: list[LocationPlanShelfOut]
+    summary: OccupancySummaryOut
+
+
+class UnlocatedBoxOut(BaseModel):
+    box: BoxSummaryOut
+    location_state: Literal["UNASSIGNED", "PENDING_CONFIRMATION", "MISSING"]
+    last_movement_at: datetime | None
+
+
+class ScanBoxOut(BaseModel):
+    kind: Literal["BOX"]
+    box: BoxSummaryOut
+    current_position: PositionPathOut | None
+    location_state: str
+    operable: bool
+    message: str
+
+
+class ScanPositionOut(BaseModel):
+    kind: Literal["POSITION"]
+    position: PositionPathOut
+    state: Literal["EMPTY", "OCCUPIED", "BLOCKED", "RETIRED"]
+    box: BoxSummaryOut | None
+    message: str
+
+
+class ScanUnregisteredOut(BaseModel):
+    kind: Literal["UNREGISTERED_BOX"]
+    box_number: str
+    message: str
+
+
+class ScanResponse(BaseModel):
+    kind: Literal["BOX", "POSITION", "UNREGISTERED_BOX"]
+    box: BoxSummaryOut | None = None
+    position: PositionPathOut | None = None
+    position_state: Literal["EMPTY", "OCCUPIED", "BLOCKED", "RETIRED"] | None = None
+    box_number: str | None = None
+    current_position: PositionPathOut | None = None
+    location_state: str | None = None
+    operable: bool | None = None
+    message: str
+
+
+class PositionBlockCreate(BaseModel):
+    shelf_id: UUID
+    start_position_id: UUID
+    end_position_id: UUID
+    reason: str = Field(min_length=1, max_length=500)
+    notes: str | None = Field(default=None, max_length=1000)
+    expected_version: int = Field(ge=1)
+
+    @field_validator("reason")
+    @classmethod
+    def _reason_not_blank(cls, value: str) -> str:
+        return _not_blank(value)
+
+
+class PositionBlockCancel(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
+    expected_version: int = Field(ge=1)
+
+    @field_validator("reason")
+    @classmethod
+    def _reason_not_blank(cls, value: str) -> str:
+        return _not_blank(value)
+
+
+class PositionBlockOut(BaseModel):
+    id: UUID
+    shelf_id: UUID
+    start_position: PositionPathOut
+    end_position: PositionPathOut
+    first_position_number: int
+    last_position_number: int
+    reason: str
+    notes: str | None
+    blocked_by: UUID | None
+    cancelled_at: datetime | None
+    cancelled_by: UUID | None
+    cancellation_reason: str | None
+    created_at: datetime
+
+
+class OccupancyReportRowOut(BaseModel):
+    area_code: str
+    area_name: str
+    shelf_code: str
+    shelf_name: str | None
+    configured_capacity: int | None
+    visible_capacity: int
+    occupied_positions: int
+    available_positions: int
+    blocked_positions: int
+    retired_positions: int
+    occupancy_rate: float
+    capacity_matches: bool
+
+
+class OccupancyReportOut(BaseModel):
+    generated_at: datetime
+    area_id: UUID | None
+    shelf_id: UUID | None
+    totals: OccupancySummaryOut
+    rows: list[OccupancyReportRowOut]
+
+
+from judicial_archive.modules.boxes.schemas import BoxSummaryOut  # noqa: E402
+
+PositionOccupancyOut.model_rebuild()
+UnlocatedBoxOut.model_rebuild()
+ScanBoxOut.model_rebuild()
+ScanPositionOut.model_rebuild()
+ScanResponse.model_rebuild()

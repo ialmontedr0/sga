@@ -8,6 +8,11 @@ from judicial_archive.modules.courts.routers import router as courts_router
 from judicial_archive.modules.identifier_profiles.routers import (
     router as identifier_profiles_router,
 )
+from judicial_archive.modules.locations.blocks_router import router as position_blocks_router
+from judicial_archive.modules.locations.occupancy_router import (
+    reports_router as location_reports_router,
+    router as locations_router,
+)
 from judicial_archive.modules.locations.routers import (
     areas_router,
     box_types_router,
@@ -15,6 +20,7 @@ from judicial_archive.modules.locations.routers import (
     shelves_router,
     trays_router,
 )
+from judicial_archive.modules.movements.routers import box_locations_router, movements_router
 from judicial_archive.modules.numbering.routers import router as numbering_router
 from judicial_archive.modules.party_roles.routers import router as party_roles_router
 from judicial_archive.modules.resolution_types.routers import router as resolution_types_router
@@ -39,3 +45,8 @@ api_router.include_router(numbering_router)
 api_router.include_router(party_roles_router)
 api_router.include_router(resolution_types_router)
 api_router.include_router(settings_router)
+api_router.include_router(locations_router)
+api_router.include_router(location_reports_router)
+api_router.include_router(position_blocks_router)
+api_router.include_router(box_locations_router)
+api_router.include_router(movements_router)

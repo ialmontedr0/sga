@@ -23,6 +23,7 @@ from judicial_archive.core.enums import (
     BoxType,
     Confidentiality,
     CustodyStatus,
+    LocationHistorySource,
     LocationPrecision,
     MovementStatus,
     MovementType,
@@ -33,6 +34,7 @@ from judicial_archive.db.mixins import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
     check_in,
+    enum_values,
 )
 
 
@@ -68,9 +70,9 @@ class Box(UUIDPrimaryKeyMixin, TimestampMixin, OptimisticLockMixin, Base):
         ),
         CheckConstraint(
             "("
-            "(custody_status IN ('IN_PLACE', 'IN_RECONCILIATION') "
+            "(custody_status IN ('IN_PLACE', 'IN_RECONCILIATION', 'PENDING_VERIFICATION') "
             "AND current_position_id IS NOT NULL)"
-            " OR (custody_status NOT IN ('IN_PLACE', 'IN_RECONCILIATION') "
+            " OR (custody_status NOT IN ('IN_PLACE', 'IN_RECONCILIATION', 'PENDING_VERIFICATION') "
             "AND current_position_id IS NULL)"
             ")",
             name="ck_boxes_custody_position",
@@ -104,7 +106,7 @@ class Box(UUIDPrimaryKeyMixin, TimestampMixin, OptimisticLockMixin, Base):
             "current_position_id",
             unique=True,
             postgresql_where=text(
-                "custody_status IN ('IN_PLACE', 'IN_RECONCILIATION') "
+                "custody_status IN ('IN_PLACE', 'IN_RECONCILIATION', 'PENDING_VERIFICATION') "
                 "AND current_position_id IS NOT NULL"
             ),
         ),
@@ -232,6 +234,80 @@ class BoxNumberHistory(UUIDPrimaryKeyMixin, Base):
     )
 
 
+class BoxLocationHistory(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "box_location_history"
+    __table_args__ = (
+        CheckConstraint(
+            "length(btrim(reason)) > 0",
+            name="ck_box_location_history_reason_not_empty",
+        ),
+        CheckConstraint(
+            f"from_custody_status IS NULL OR from_custody_status IN ({enum_values(CustodyStatus)})",
+            name="ck_box_location_history_from_custody",
+        ),
+        CheckConstraint(
+            f"to_custody_status IN ({enum_values(CustodyStatus)})",
+            name="ck_box_location_history_to_custody",
+        ),
+        CheckConstraint(
+            "from_location_precision IS NULL OR "
+            f"from_location_precision IN ({enum_values(LocationPrecision)})",
+            name="ck_box_location_history_from_precision",
+        ),
+        CheckConstraint(
+            f"to_location_precision IN ({enum_values(LocationPrecision)})",
+            name="ck_box_location_history_to_precision",
+        ),
+        check_in("source", LocationHistorySource, name="ck_box_location_history_source"),
+        Index("ix_box_location_history_box_changed", "box_id", "changed_at"),
+        Index("ix_box_location_history_to_position", "to_position_id", "changed_at"),
+        Index("ix_box_location_history_movement", "movement_id"),
+    )
+
+    box_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("boxes.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    movement_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("box_movements.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    from_position_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("positions.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    to_position_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("positions.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    from_custody_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    to_custody_status: Mapped[str] = mapped_column(String(24), nullable=False)
+    from_location_precision: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    to_location_precision: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    source: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=LocationHistorySource.API.value,
+        server_default=LocationHistorySource.API.value,
+    )
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    changed_by: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+
 class BoxMovement(UUIDPrimaryKeyMixin, TimestampMixin, OptimisticLockMixin, Base):
     __tablename__ = "box_movements"
     __table_args__ = (
@@ -256,6 +332,12 @@ class BoxMovement(UUIDPrimaryKeyMixin, TimestampMixin, OptimisticLockMixin, Base
         ),
         Index("ix_box_movements_box", "box_id", "occurred_at"),
         Index("ix_box_movements_status", "movement_status"),
+        Index(
+            "uq_box_movements_open_box",
+            "box_id",
+            unique=True,
+            postgresql_where=text("movement_status IN ('PLANNED', 'IN_TRANSIT')"),
+        ),
     )
 
     box_id: Mapped[UUID] = mapped_column(

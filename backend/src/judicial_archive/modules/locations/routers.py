@@ -121,3 +121,274 @@ async def list_box_types(
             label="Documentos administrativos",
         ),
     ]
+
+
+@shelves_router.get("", response_model=Page[schemas.ShelfOut])
+async def list_shelves(
+    params: Annotated[PageParams, Depends(pagination_params)],
+    area_id: UUID | None = None,
+    q: Annotated[str | None, Query(max_length=120)] = None,
+    shelf_status: Annotated[str | None, Query(alias="status")] = None,
+    sort_by: str | None = None,
+    order: SortOrder = SortOrder.ASC,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> Page[schemas.ShelfOut]:
+    sort = build_sort_params(sort_by, order, allowed_fields=_SHELF_SORT)
+    return await services.list_shelves(
+        session,
+        params=params,
+        area_id=area_id,
+        q=q,
+        status=shelf_status,
+        sort_by=sort.sort_by or "code",
+        order=sort.order,
+    )
+
+
+@shelves_router.post(
+    "",
+    response_model=schemas.ShelfOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_shelf(
+    request: Request,
+    body: schemas.ShelfCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.ShelfOut:
+    return await services.create_shelf(request, session, current_user, body)
+
+
+@shelves_router.get("/{shelf_id}", response_model=schemas.ShelfOut)
+async def get_shelf(
+    shelf_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> schemas.ShelfOut:
+    return await services.get_shelf(session, shelf_id)
+
+
+@shelves_router.patch("/{shelf_id}", response_model=schemas.ShelfOut)
+async def update_shelf(
+    request: Request,
+    shelf_id: UUID,
+    body: schemas.ShelfUpdate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.ShelfOut:
+    return await services.update_shelf(request, session, current_user, shelf_id, body)
+
+
+@shelves_router.post("/{shelf_id}/activate", response_model=schemas.ShelfOut)
+async def activate_shelf(
+    request: Request,
+    shelf_id: UUID,
+    body: schemas.ShelfStatusRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.ShelfOut:
+    return await services.set_shelf_status(
+        request, session, current_user, shelf_id, "ACTIVE", body.reason
+    )
+
+
+@shelves_router.post("/{shelf_id}/deactivate", response_model=schemas.ShelfOut)
+async def deactivate_shelf(
+    request: Request,
+    shelf_id: UUID,
+    body: schemas.ShelfStatusRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.ShelfOut:
+    return await services.set_shelf_status(
+        request, session, current_user, shelf_id, "INACTIVE", body.reason
+    )
+
+
+@shelves_router.post(
+    "/{shelf_id}/capacity/preview",
+    response_model=schemas.CapacityPlanOut,
+)
+async def preview_shelf_capacity(
+    shelf_id: UUID,
+    body: schemas.CapacityTarget,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> schemas.CapacityPlanOut:
+    return await services.preview_capacity(session, shelf_id, body)
+
+
+@shelves_router.post(
+    "/{shelf_id}/capacity/apply",
+    response_model=schemas.CapacityApplyOut,
+)
+async def apply_shelf_capacity(
+    request: Request,
+    shelf_id: UUID,
+    body: schemas.CapacityApplyRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.CapacityApplyOut:
+    return await services.apply_capacity(request, session, current_user, shelf_id, body)
+
+
+@trays_router.get("", response_model=Page[schemas.TrayOut])
+async def list_trays(
+    params: Annotated[PageParams, Depends(pagination_params)],
+    shelf_id: UUID | None = None,
+    q: Annotated[str | None, Query(max_length=120)] = None,
+    tray_status: Annotated[str | None, Query(alias="status")] = None,
+    sort_by: str | None = None,
+    order: SortOrder = SortOrder.ASC,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> Page[schemas.TrayOut]:
+    sort = build_sort_params(sort_by, order, allowed_fields=_TRAY_SORT)
+    return await services.list_trays(
+        session,
+        params=params,
+        shelf_id=shelf_id,
+        q=q,
+        status=tray_status,
+        sort_by=sort.sort_by or "code",
+        order=sort.order,
+    )
+
+
+@trays_router.post(
+    "",
+    response_model=schemas.TrayOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_tray(
+    request: Request,
+    body: schemas.TrayCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.TrayOut:
+    return await services.create_tray(request, session, current_user, body)
+
+
+@trays_router.get("/{tray_id}", response_model=schemas.TrayOut)
+async def get_tray(
+    tray_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> schemas.TrayOut:
+    return await services.get_tray(session, tray_id)
+
+
+@trays_router.patch("/{tray_id}", response_model=schemas.TrayOut)
+async def update_tray(
+    request: Request,
+    tray_id: UUID,
+    body: schemas.TrayUpdate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.TrayOut:
+    return await services.update_tray(request, session, current_user, tray_id, body)
+
+
+@trays_router.post("/{tray_id}/activate", response_model=schemas.TrayOut)
+async def activate_tray(
+    request: Request,
+    tray_id: UUID,
+    body: schemas.TrayStatusRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.TrayOut:
+    return await services.set_tray_status(
+        request, session, current_user, tray_id, "ACTIVE", body.reason
+    )
+
+
+@trays_router.post("/{tray_id}/deactivate", response_model=schemas.TrayOut)
+async def deactivate_tray(
+    request: Request,
+    tray_id: UUID,
+    body: schemas.TrayStatusRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.TrayOut:
+    return await services.set_tray_status(
+        request, session, current_user, tray_id, "INACTIVE", body.reason
+    )
+
+
+@positions_router.get("", response_model=Page[schemas.PositionOut])
+async def list_positions(
+    params: Annotated[PageParams, Depends(pagination_params)],
+    tray_id: UUID | None = None,
+    q: Annotated[str | None, Query(max_length=120)] = None,
+    position_status: Annotated[str | None, Query(alias="status")] = None,
+    sort_by: str | None = None,
+    order: SortOrder = SortOrder.ASC,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> Page[schemas.PositionOut]:
+    sort = build_sort_params(sort_by, order, allowed_fields=_POSITION_SORT)
+    return await services.list_positions(
+        session,
+        params=params,
+        tray_id=tray_id,
+        q=q,
+        status=position_status,
+        sort_by=sort.sort_by or "code",
+        order=sort.order,
+    )
+
+
+@positions_router.post(
+    "",
+    response_model=schemas.PositionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_position(
+    request: Request,
+    body: schemas.PositionCreate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.PositionOut:
+    return await services.create_position(request, session, current_user, body)
+
+
+@positions_router.get("/{position_id}", response_model=schemas.PositionOut)
+async def get_position(
+    position_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_READ)),
+) -> schemas.PositionOut:
+    return await services.get_position(session, position_id)
+
+
+@positions_router.patch("/{position_id}", response_model=schemas.PositionOut)
+async def update_position(
+    request: Request,
+    position_id: UUID,
+    body: schemas.PositionUpdate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.PositionOut:
+    return await services.update_position(request, session, current_user, position_id, body)
+
+
+@positions_router.post("/{position_id}/retire", response_model=schemas.PositionOut)
+async def retire_position(
+    request: Request,
+    position_id: UUID,
+    body: schemas.PositionRetireRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.PositionOut:
+    return await services.retire_position(request, session, current_user, position_id, body)
+
+
+@positions_router.post("/{position_id}/activate", response_model=schemas.PositionOut)
+async def activate_position(
+    request: Request,
+    position_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_permissions(permissions.CATALOG_MANAGE)),
+) -> schemas.PositionOut:
+    return await services.activate_position(request, session, current_user, position_id)

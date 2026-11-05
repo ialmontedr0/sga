@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-import pytest
 from fastapi.testclient import TestClient
 
 BASE_PATHS = {
@@ -34,10 +33,6 @@ def _openapi(client: TestClient) -> dict[str, Any]:
     return cast(dict[str, Any], response.json())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="shelves/trays/positions y capacity aun no tienen rutas en locations/routers.py",
-)
 def test_b5_openapi_contains_required_catalog_paths(client: TestClient) -> None:
     paths = _openapi(client)["paths"]
     assert isinstance(paths, dict)
@@ -73,10 +68,6 @@ def test_identifier_profile_update_schema_excludes_pattern(client: TestClient) -
     assert set(schema["properties"]) == {"notes", "effective_to"}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="CapacityApplyRequest no aparece en OpenAPI porque faltan las rutas de capacidad",
-)
 def test_capacity_apply_requires_expected_version(client: TestClient) -> None:
     schema = _openapi(client)["components"]["schemas"]["CapacityApplyRequest"]
     assert {"levels", "positions_per_level", "expected_version"} <= set(schema["required"])

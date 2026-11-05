@@ -849,7 +849,7 @@ fuente.
     silenciosa.
 -   Los códigos visibles no sustituyen las claves internas.
 
-## Estado de la fase: Pendiente
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
 
 
@@ -893,54 +893,8 @@ y ubicación de cada caja.
     confirmada y posición vacía.
 -   La capacidad visible coincide con la configuración física.
 
-## Estado de la fase: Pendiente
+## Estado de la fase: Completada
 ------------------------------------------------------------------------
-
-Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
-
-Fase B6 --- Inventario físico y ubicaciones
-
-### Objetivo
-
-Representar de manera fiable las áreas, anaqueles, bandejas, posiciones
-y ubicación de cada caja.
-
-### Actividades
-
--   CRUD de áreas y anaqueles.
--   Definición de capacidad configurable por anaquel.
--   Generación y mantenimiento de bandejas y posiciones.
--   Asignación y desasignación de cajas.
--   Estados de ubicación: desconocida, pendiente de verificar,
-    confirmada, en tránsito u otros aprobados.
--   Historial de ubicación.
--   Validaciones de capacidad y unicidad.
--   Operaciones de traslado con origen, destino, motivo y usuario.
--   Soporte para cajas sin ubicación conocida.
--   Consultas de ocupación y capacidad disponible.
--   Diseño de operaciones de inventario físico y conciliación.
-
-### Entregables
-
--   Modelos y servicios de ubicación.
--   Endpoints para plano y posiciones.
--   Endpoints de movimientos.
--   Reportes de ocupación.
--   Pruebas de concurrencia de asignación.
--   Documentación de estados de ubicación.
-
-### Criterios de aceptación
-
--   No se puede ocupar dos veces una misma posición.
--   Una caja no puede estar en dos posiciones activas.
--   Los movimientos mantienen historial completo.
--   El sistema diferencia caja no registrada, caja sin ubicación
-    confirmada y posición vacía.
--   La capacidad visible coincide con la configuración física.
-
-En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB6_guide.md, asi queda todo documentado de una vez.
-
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B7 --- Cajas, expedientes e inventario administrativo
 
@@ -984,7 +938,56 @@ Implementar el núcleo de gestión documental.
     auditadas.
 -   Las operaciones parciales fallidas no dejan datos inconsistentes.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B7 --- Cajas, expedientes e inventario administrativo
+
+### Objetivo
+
+Implementar el núcleo de gestión documental.
+
+### Actividades
+
+-   CRUD de cajas.
+-   Numeración global mediante mecanismo seguro ante concurrencia.
+-   Alta de caja con tribunal, año y tipo.
+-   CRUD de expedientes.
+-   Relación de varios imputados con un expediente.
+-   CRUD de documentos administrativos.
+-   Validación configurable de NUC.
+-   Validación de sentencia/resolución según tribunal.
+-   Búsqueda y detección de duplicados.
+-   Transacciones para creación de caja y contenido.
+-   Reglas estrictas de exclusión de tipos documentales.
+-   Desactivación y corrección controlada de registros.
+-   Soporte para excepciones históricas justificadas.
+-   Auditoría de operaciones.
+
+### Entregables
+
+-   Servicios y endpoints CRUD.
+-   Validadores configurables.
+-   Reglas de integridad.
+-   Pruebas unitarias e integración.
+-   Documentación de endpoints y ejemplos de payload.
+-   Procedimiento de corrección de datos históricos.
+
+### Criterios de aceptación
+
+-   No es posible insertar expedientes en una caja administrativa ni
+    documentos administrativos en una caja de expedientes.
+-   La numeración es única incluso con altas concurrentes.
+-   Los imputados se buscan individualmente.
+-   Las reglas de identificadores permiten configuración y excepciones
+    auditadas.
+-   Las operaciones parciales fallidas no dejan datos inconsistentes.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB7_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B8 --- Búsqueda avanzada e índices
 
@@ -1041,7 +1044,69 @@ archivo completo.
 -   Se miden tiempos con datos de prueba representativos.
 -   Los resultados respetan permisos y no filtran datos restringidos.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B8 --- Búsqueda avanzada e índices
+
+### Objetivo
+
+Encontrar rápidamente expedientes, documentos, cajas y ubicaciones en el
+archivo completo.
+
+### Criterios de búsqueda
+
+-   NUC completo.
+-   Últimos cinco dígitos del NUC.
+-   Coincidencia parcial de NUC.
+-   Nombre de imputado, con coincidencia parcial y normalización.
+-   Tribunal y código.
+-   Año.
+-   Identificador de sentencia/resolución.
+-   Fecha de entrada y fecha de sentencia.
+-   Nombre de documento administrativo.
+-   Número de caja.
+-   Área, anaquel, bandeja y posición.
+-   Tipo y estado de caja.
+-   Ubicación desconocida o pendiente de verificación.
+-   Estado de préstamo y disponibilidad, según permisos.
+-   Búsqueda por lote de importación y registros con incidencias.
+
+### Actividades
+
+-   Definir semántica exacta de coincidencia, acentos, mayúsculas y
+    espacios.
+-   Crear índices B-tree y otros índices adecuados según consultas.
+-   Evaluar búsqueda de texto completo y trigramas de PostgreSQL.
+-   Construir filtros combinables.
+-   Implementar paginación estable.
+-   Añadir ordenación permitida por lista blanca.
+-   Devolver ubicación física en resultados autorizados.
+-   Preparar consultas de explicación y pruebas de rendimiento.
+-   Evitar consultas N+1 y carga innecesaria de relaciones.
+
+### Entregables
+
+-   Endpoints de búsqueda.
+-   Índices y migraciones.
+-   Contratos de filtros.
+-   Pruebas de precisión y rendimiento.
+-   Documentación de búsqueda.
+
+### Criterios de aceptación
+
+-   Buscar los últimos cinco dígitos devuelve todas las coincidencias,
+    sin asumir unicidad.
+-   Las búsquedas combinadas no omiten filtros.
+-   La respuesta incluye caja y ubicación cuando estén confirmadas.
+-   Se miden tiempos con datos de prueba representativos.
+-   Los resultados respetan permisos y no filtran datos restringidos.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB8_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B9 --- Auditoría, movimientos, préstamos y devoluciones
 
@@ -1083,7 +1148,54 @@ Asegurar trazabilidad operativa de las cajas y los documentos.
 -   Los conflictos de préstamo se detectan antes de confirmar la
     operación.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B9 --- Auditoría, movimientos, préstamos y devoluciones
+
+### Objetivo
+
+Asegurar trazabilidad operativa de las cajas y los documentos.
+
+### Actividades
+
+-   Registro de cambios con actor, fecha, entidad, operación, motivo y
+    valores permitidos.
+-   Historial de movimiento de cajas.
+-   Solicitud, autorización, entrega, renovación y devolución de
+    préstamos.
+-   Definición de si se prestan cajas, expedientes o ambos.
+-   Validación de disponibilidad y conflictos.
+-   Registro de incidentes: retraso, pérdida, daño o discrepancia.
+-   Alertas de vencimiento y movimientos pendientes.
+-   Permisos para consulta de auditoría.
+-   Protección de la integridad de eventos.
+-   Exportación autorizada de historial.
+
+### Entregables
+
+-   Módulo de auditoría.
+-   Módulo de préstamos y movimientos.
+-   Catálogo de estados y transiciones.
+-   Alertas.
+-   Pruebas de transiciones y permisos.
+-   Manual operativo.
+
+### Criterios de aceptación
+
+-   Una devolución no borra el historial del préstamo.
+-   Las operaciones críticas exigen permisos.
+-   Los movimientos tienen origen, destino, actor, fecha y motivo.
+-   Los registros de auditoría no pueden alterarse mediante operaciones
+    CRUD normales.
+-   Los conflictos de préstamo se detectan antes de confirmar la
+    operación.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB9_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B10 --- Archivos, importaciones masivas y revisión
 
@@ -1144,7 +1256,73 @@ cálculo, conservando trazabilidad y control humano.
 -   Los fallos quedan registrados con información útil y sin filtrar
     detalles internos.
 
+## Estado de la fase: Pendiente
 ------------------------------------------------------------------------
+
+Avancemos con en el desarrollo, implementacion y documentacion de la siguiente fase de forma profesional, avanzada, completa, funcional, sin omisiones y abarcando todo lo relativo a esta. Continuaremos con:
+
+Fase B10 --- Archivos, importaciones masivas y revisión
+
+### Objetivo
+
+Importar inventarios existentes desde documentos digitales y hojas de
+cálculo, conservando trazabilidad y control humano.
+
+### Formatos
+
+-   PDF con texto.
+-   DOCX.
+-   CSV.
+-   XLSX.
+-   PDF escaneado.
+-   JPG, PNG o TIFF, si se habilitan.
+-   Otros formatos aprobados tras evaluar seguridad y complejidad.
+
+### Actividades
+
+-   Crear almacenamiento privado de archivos.
+-   Validar extensión, MIME real, tamaño y límites.
+-   Calcular hash para integridad y detección de duplicados.
+-   Registrar el archivo original y el lote.
+-   Extraer texto de PDF y DOCX.
+-   Detectar tablas y encabezados.
+-   Configurar perfiles de mapeo de columnas.
+-   Normalizar NUC, nombres, códigos, años y fechas.
+-   Presentar vista previa editable.
+-   Clasificar filas: válidas, advertencias, errores y duplicados
+    probables.
+-   Permitir corregir y aprobar/rechazar.
+-   Ejecutar importación en transacciones controladas.
+-   Registrar usuario, fecha, archivo, mapeo, decisiones y resultados.
+-   Ofrecer reanudación o repetición segura de lotes fallidos.
+-   Generar resumen descargable de resultados.
+
+### Entregables
+
+-   Servicio de almacenamiento.
+-   CRUD de lotes.
+-   Procesadores para PDF/DOCX/CSV/XLSX.
+-   Vista de revisión disponible mediante API.
+-   Endpoints de aprobación y ejecución.
+-   Informe de importación.
+-   Pruebas con archivos válidos, malformados, duplicados y de gran
+    tamaño.
+
+### Criterios de aceptación
+
+-   El archivo original queda vinculado al lote.
+-   Ningún registro se incorpora oficialmente antes de la aprobación.
+-   Las filas con errores se identifican y no se importan
+    silenciosamente.
+-   Una repetición no duplica registros sin advertencia.
+-   Los archivos no autorizados o malformados son rechazados de forma
+    segura.
+-   Los fallos quedan registrados con información útil y sin filtrar
+    detalles internos.
+
+En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB10_guide.md, asi queda todo documentado de una vez.
+
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
 
 # Fase B11 --- OCR de escaneos y manuscritos
 

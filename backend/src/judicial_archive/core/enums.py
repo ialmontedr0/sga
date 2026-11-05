@@ -84,6 +84,7 @@ class CustodyStatus(StrEnum):
     IN_TRANSIT = "IN_TRANSIT"
     MISSING = "MISSING"
     IN_RECONCILIATION = "IN_RECONCILIATION"
+    PENDING_VERIFICATION = "PENDING_VERIFICATION"
     UNKNOWN = "UNKNOWN"
 
 
@@ -129,6 +130,7 @@ class LifecycleStatus(StrEnum):
 
 class MovementType(StrEnum):
     ASSIGN = "ASSIGN"
+    UNASSIGN = "UNASSIGN"
     TRANSFER = "TRANSFER"
     RETURN = "RETURN"
     LOAN_PICKUP = "LOAN_PICKUP"
@@ -315,3 +317,39 @@ class AuditSource(StrEnum):
     OCR = "OCR"
     TASK = "TASK"
     SYSTEM = "SYSTEM"
+
+
+class TransferMode(StrEnum):
+    IMMEDIATE = "IMMEDIATE"
+    IN_TRANSIT = "IN_TRANSIT"
+
+
+class LocationState(StrEnum):
+    CONFIRMED = "CONFIRMED"
+    PENDING_CONFIRMATION = "PENDING_CONFIRMATION"
+    IN_RECONCILIATION = "IN_RECONCILIATION"
+    ON_LOAN = "ON_LOAN"
+    IN_TRANSIT = "IN_TRANSIT"
+    MISSING = "MISSING"
+    UNASSIGNED = "UNASSIGNED"
+
+
+class LocationHistorySource(StrEnum):
+    API = "API"
+    RECONCILIATION = "RECONCILIATION"
+    IMPORT = "IMPORT"
+    SYSTEM = "SYSTEM"
+    MIGRATION = "MIGRATION"
+
+
+class PositionOccupancyState(StrEnum):
+    EMPTY = "EMPTY"
+    OCCUPIED = "OCCUPIED"
+    BLOCKED = "BLOCKED"
+    RETIRED = "RETIRED"
+
+
+class ScanKind(StrEnum):
+    BOX = "BOX"
+    POSITION = "POSITION"
+    UNREGISTERED_BOX = "UNREGISTERED_BOX"

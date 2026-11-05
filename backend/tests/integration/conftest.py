@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
 import pytest
@@ -24,6 +24,7 @@ from judicial_archive.db.base import Base
 from judicial_archive.db.seed import seed_database
 from judicial_archive.main import create_app
 from tests.integration.auth_helpers import seed_admin
+from tests.integration.location_fixtures import location_tree  # noqa: F401
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
@@ -96,12 +97,24 @@ async def session_factory(
         await connection.execute(
             text("ALTER TABLE audit_events DISABLE TRIGGER trg_audit_events_no_truncate")
         )
+        await connection.execute(
+            text(
+                "ALTER TABLE box_location_history "
+                "DISABLE TRIGGER trg_box_location_history_no_truncate"
+            )
+        )
         try:
             await connection.execute(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE"))
             await connection.execute(
                 text("ALTER SEQUENCE box_visible_number_seq RESTART WITH 4402")
             )
         finally:
+            await connection.execute(
+                text(
+                    "ALTER TABLE box_location_history "
+                    "ENABLE TRIGGER trg_box_location_history_no_truncate"
+                )
+            )
             await connection.execute(
                 text("ALTER TABLE audit_events ENABLE TRIGGER trg_audit_events_no_truncate")
             )
@@ -139,3 +152,9 @@ async def seeded_api_client(
     async with session_factory() as session:
         await seed_database(session)
     yield api_client
+
+
+@pytest.fixture
+def restore_head(alembic_config: Config) -> Iterator[None]:
+    yield
+    command.upgrade(alembic_config, "head")
