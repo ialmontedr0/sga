@@ -3,7 +3,15 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from judicial_archive.api.v1 import health
+from judicial_archive.modules.administrative_documents.routers import (
+    router as administrative_documents_router,
+)
 from judicial_archive.modules.auth.routers import router as auth_router
+from judicial_archive.modules.boxes.routers import router as boxes_router
+from judicial_archive.modules.case_files.routers import (
+    persons_router,
+    router as case_files_router,
+)
 from judicial_archive.modules.courts.routers import router as courts_router
 from judicial_archive.modules.identifier_profiles.routers import (
     router as identifier_profiles_router,
@@ -50,3 +58,7 @@ api_router.include_router(location_reports_router)
 api_router.include_router(position_blocks_router)
 api_router.include_router(box_locations_router)
 api_router.include_router(movements_router)
+api_router.include_router(boxes_router)
+api_router.include_router(case_files_router)
+api_router.include_router(persons_router)
+api_router.include_router(administrative_documents_router)

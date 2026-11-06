@@ -24,6 +24,103 @@ _SCOPE_REQUIRED = {
     "YEAR": (False, False, True),
 }
 
+_SPECIFICITY = {"COURT": 0, "BOX_TYPE": 1, "YEAR": 2, "GLOBAL": 3}
+
+
+def policy_applies_to_box(
+    policy: NumberingPolicy,
+    *,
+    court_id: UUID,
+    box_type: str,
+    year: int,
+) -> bool:
+    if policy.scope == "GLOBAL":
+        return True
+    if policy.scope == "COURT":
+        return policy.court_id == court_id
+    if policy.scope == "BOX_TYPE":
+        return policy.box_type == box_type
+    if policy.scope == "YEAR":
+        return policy.year == year
+    return False
+
+
+async def resolve_numbering_policy(
+    session: AsyncSession,
+    *,
+    court_id: UUID,
+    box_type: str,
+    year: int,
+    policy_id: UUID | None = None,
+) -> NumberingPolicy:
+    repo = NumberingPoliciesRepository(session)
+    today = date.today()  # noqa: DTZ011
+    if policy_id is not None:
+        policy = await repo.get_by_id(policy_id)
+        if policy is None:
+            raise ConflictError(
+                "Politica de numeracion no encontrada.",
+                details={"reason": "numbering_policy_not_found"},
+            )
+        if not policy.is_active:
+            raise ConflictError(
+                "La politica de numeracion esta inactiva.",
+                details={"reason": "numbering_policy_inactive"},
+            )
+        if policy.effective_from > today or (
+            policy.effective_to is not None and policy.effective_to < today
+        ):
+            raise ConflictError(
+                "La politica de numeracion no esta vigente.",
+                details={"reason": "numbering_policy_not_effective"},
+            )
+        if not policy_applies_to_box(policy, court_id=court_id, box_type=box_type, year=year):
+            raise ConflictError(
+                "La politica de numeracion no aplica a la caja.",
+                details={"reason": "numbering_policy_scope_mismatch"},
+            )
+        return policy
+
+    candidates = await repo.list_active_candidates(
+        court_id=court_id, box_type=box_type, year=year, on_date=today
+    )
+    if not candidates:
+        raise ConflictError(
+            "No hay una politica de numeracion activa para la caja.",
+            details={"reason": "numbering_policy_not_found"},
+        )
+    return sorted(
+        candidates,
+        key=lambda item: (_SPECIFICITY[item.scope], -item.effective_from.toordinal()),
+    )[0]
+
+
+async def allocate_visible_number(
+    session: AsyncSession,
+    *,
+    court_id: UUID,
+    box_type: str,
+    year: int,
+    policy_id: UUID | None = None,
+) -> tuple[str, NumberingPolicy]:
+    policy = await resolve_numbering_policy(
+        session,
+        court_id=court_id,
+        box_type=box_type,
+        year=year,
+        policy_id=policy_id,
+    )
+    value = await session.scalar(
+        text("SELECT nextval(CAST(:name AS regclass))"),
+        {"name": policy.sequence_name},
+    )
+    if value is None:
+        raise ConflictError(
+            "No se pudo obtener el siguiente numero de caja.",
+            details={"reason": "sequence_unavailable"},
+        )
+    return format_visible_number(policy, int(value)), policy
+
 
 def validate_scope_columns(
     *,

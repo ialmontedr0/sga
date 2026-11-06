@@ -1,3 +1,5 @@
+"""case_files/models.py"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -295,7 +297,7 @@ class Person(
 
     display_name: Mapped[str] = mapped_column(String(300), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(300), nullable=False)
-    aliases: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
+    aliases: Mapped[list[Any] | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     identification_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
     identification_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -318,6 +320,13 @@ class CaseParty(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         Index("ix_case_parties_case_file_id", "case_file_id"),
         Index("ix_case_parties_person_id", "person_id"),
+        Index(
+            "uq_case_parties_case_person_role",
+            "case_file_id",
+            "person_id",
+            "party_role_id",
+            unique=True,
+        ),
     )
 
     case_file_id: Mapped[UUID] = mapped_column(

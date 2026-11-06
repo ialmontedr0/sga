@@ -943,10 +943,12 @@ instrucciones. La secuencia acordada es **backend antes de frontend**.
     sesiones/tokens y autorización.
 -   **B5 --- Catálogos judiciales y configuración física:** tribunales,
     áreas, anaqueles, bandejas, posiciones y capacidades.
--   **B6 --- Cajas y registros documentales:** numeración, expedientes,
-    imputados, documentos administrativos y reglas de exclusión.
--   **B7 --- Ubicaciones y movimientos:** asignación de posición,
-    traslados, historial y concurrencia.
+-   **B6 --- Inventario físico y ubicaciones:** áreas, anaqueles,
+    bandejas, posiciones, capacidades, asignación de posición, traslados,
+    historial y concurrencia.
+-   **B7 --- Cajas, expedientes e inventario administrativo:** numeración,
+    cajas, expedientes, personas/partes, documentos administrativos y
+    reglas de exclusión.
 -   **B8 --- Búsqueda global:** filtros combinados, últimos cinco
     dígitos del NUC, índices, paginación y permisos.
 -   **B9 --- Archivos y digitalización:** almacenamiento privado,

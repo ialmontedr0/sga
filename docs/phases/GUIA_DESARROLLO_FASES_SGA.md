@@ -1106,7 +1106,7 @@ archivo completo.
 
 En este desarrollo de esta fase, quiero que me proporciones toda la informacion de implementacion, codigo, comandos, instrucciones completas y detalladas y todo lo indicado en esta fase, pero una escala completa, sin saltarte nada, todo lo que indica sin omisiones, de forma avanzada, moderna, profesional, correcta, completa y siempre tomando las mejores opciones, arquitecturas, patrones de diseño, todo que sea gratis para mi. No implementes por tu cuenta, solo indicame las instrucciones y documenta todo. Recuerda siempre leer el docs/AGENTS.md y el docs/phases/GUIA_DESARROLLO_FASES_SGA.md para mantenerte retroalimentado siempre y no perder el hilo y, cualquier informacion de otra de las fases ya implementadas puedes leerla en su respectivo archivo .md. Y toda la guia y documentacion de implementacion de la fase actual la escribiras en el archivo relativo a ella que sera phases/phaseB8_guide.md, asi queda todo documentado de una vez.
 
-Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor.
+Nota: las indicaciones deben ser bien claras, no omitas donde debo crear archivos, donde debo escribir codigo, no te saltes nada, debes ser bien detallado por favor. NO OMITAS ABSOLUTAMENTE NADA.
 
 # Fase B9 --- Auditoría, movimientos, préstamos y devoluciones
 

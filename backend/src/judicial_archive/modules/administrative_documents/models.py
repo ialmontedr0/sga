@@ -1,3 +1,5 @@
+"""administrative_document/models.py"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -102,6 +104,7 @@ class AdministrativeDocument(
         Index("ix_admin_documents_box_id", "box_id"),
         Index("ix_admin_documents_year", "document_year"),
         Index("ix_admin_documents_lifecycle", "lifecycle_status"),
+        Index("ix_admin_documents_box_year", "box_id", "document_year"),
     )
 
     box_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)

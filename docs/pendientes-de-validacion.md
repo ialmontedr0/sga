@@ -19,6 +19,7 @@ Cada punto requiere decisión humana antes de convertirse en regla rígida.
 | 13 | Numeración | ¿Cuándo se asigna el número y cómo se anula? | B6 | Pendiente |
 | 14 | Numeración de fases | `AGENTS.md` usa B0-B15/F0-F10; la guía maestra B0-B16/F1-F11 | Trazabilidad documental | B0 | Resuelto: prevalece la guía maestra; corregir `AGENTS.md` |
 | 15 | Licencia | ¿Licencia institucional o privada? | Publicación | B0 | Pendiente |
+| 16 | Confidencialidad por defecto (D-33) | La guía maestra indica `RESTRICTED`; B7 implementó `INTERNAL`. ¿Cuál debe prevalecer? | Búsqueda, permisos y datos históricos | B8 | Pendiente: B8 no cambia el default; requiere decisión legal/archivística y ADR |
 
 ## Nota sobre la numeración de fases
 

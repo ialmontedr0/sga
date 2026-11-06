@@ -1,3 +1,5 @@
+"""db/base.py"""
+
 from __future__ import annotations
 
 from sqlalchemy import MetaData

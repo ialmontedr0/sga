@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -97,3 +98,29 @@ class NumberingPoliciesRepository:
             )
         ).all()
         return rows, int(total or 0)
+
+    async def list_active_candidates(
+        self,
+        *,
+        court_id: UUID,
+        box_type: str,
+        year: int,
+        on_date: date,
+    ) -> Sequence[NumberingPolicy]:
+        rows = await self.session.scalars(
+            select(NumberingPolicy).where(
+                NumberingPolicy.is_active.is_(True),
+                NumberingPolicy.effective_from <= on_date,
+                or_(
+                    NumberingPolicy.effective_to.is_(None),
+                    NumberingPolicy.effective_to >= on_date,
+                ),
+                or_(
+                    NumberingPolicy.scope == "GLOBAL",
+                    (NumberingPolicy.scope == "COURT") & (NumberingPolicy.court_id == court_id),
+                    (NumberingPolicy.scope == "BOX_TYPE") & (NumberingPolicy.box_type == box_type),
+                    (NumberingPolicy.scope == "YEAR") & (NumberingPolicy.year == year),
+                ),
+            )
+        )
+        return rows.all()

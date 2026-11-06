@@ -8,9 +8,17 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from judicial_archive.core.enums import CustodyStatus
+from judicial_archive.core.enums import CustodyStatus, MovementStatus
+from judicial_archive.core.pagination import SortOrder
 from judicial_archive.core.text import escape_like
-from judicial_archive.modules.boxes.models import Box, BoxLocationHistory
+from judicial_archive.modules.administrative_documents.models import AdministrativeDocument
+from judicial_archive.modules.boxes.models import (
+    Box,
+    BoxLocationHistory,
+    BoxMovement,
+    BoxNumberHistory,
+)
+from judicial_archive.modules.case_files.models import CaseFile
 
 
 class BoxRepository:
@@ -110,3 +118,87 @@ class BoxRepository:
             )
             .limit(1)
         )
+
+    async def list_items(
+        self,
+        *,
+        q: str | None,
+        court_id: UUID | None,
+        year: int | None,
+        box_type: str | None,
+        lifecycle_status: str | None,
+        custody_status: str | None,
+        sort_by: str,
+        order: SortOrder,
+        offset: int,
+        limit: int,
+    ) -> tuple[Sequence[Box], int]:
+        allowed = {"visible_number", "year", "created_at", "updated_at"}
+        if sort_by not in allowed:
+            raise ValueError("Campo de ordenamiento no permitido.")
+        conditions: list[ColumnElement[bool]] = []
+        if q:
+            pattern = f"%{escape_like(q.strip())}%"
+            conditions.append(Box.visible_number.ilike(pattern, escape="\\"))
+        if court_id is not None:
+            conditions.append(Box.court_id == court_id)
+        if year is not None:
+            conditions.append(Box.year == year)
+        if box_type:
+            conditions.append(Box.box_type == box_type)
+        if lifecycle_status:
+            conditions.append(Box.lifecycle_status == lifecycle_status)
+        if custody_status:
+            conditions.append(Box.custody_status == custody_status)
+
+        base = select(Box).where(*conditions)
+        total = await self.session.scalar(select(func.count()).select_from(base.subquery()))
+        column = getattr(Box, sort_by)
+        ordering = column.asc() if order == SortOrder.ASC else column.desc()
+        rows = (
+            await self.session.scalars(base.order_by(ordering, Box.id).offset(offset).limit(limit))
+        ).all()
+        return rows, int(total or 0)
+
+    async def count_contents(self, box_id: UUID) -> tuple[int, int]:
+        case_count = await self.session.scalar(
+            select(func.count())
+            .select_from(CaseFile)
+            .where(CaseFile.box_id == box_id, CaseFile.deleted_at.is_(None))
+        )
+        doc_count = await self.session.scalar(
+            select(func.count())
+            .select_from(AdministrativeDocument)
+            .where(
+                AdministrativeDocument.box_id == box_id,
+                AdministrativeDocument.deleted_at.is_(None),
+            )
+        )
+        return int(case_count or 0), int(doc_count or 0)
+
+    async def list_number_history(
+        self, box_id: UUID, *, offset: int, limit: int
+    ) -> tuple[Sequence[BoxNumberHistory], int]:
+        base = select(BoxNumberHistory).where(BoxNumberHistory.box_id == box_id)
+        total = await self.session.scalar(select(func.count()).select_from(base.subquery()))
+        rows = (
+            await self.session.scalars(
+                base.order_by(BoxNumberHistory.changed_at.desc(), BoxNumberHistory.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        ).all()
+        return rows, int(total or 0)
+
+    async def has_open_movement(self, box_id: UUID) -> bool:
+        exists = await self.session.scalar(
+            select(BoxMovement.id)
+            .where(
+                BoxMovement.box_id == box_id,
+                BoxMovement.movement_status.in_(
+                    [MovementStatus.PLANNED.value, MovementStatus.IN_TRANSIT.value]
+                ),
+            )
+            .limit(1)
+        )
+        return exists is not None

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -11,6 +12,17 @@ from judicial_archive.modules.boxes.models import Box
 from tests.integration.location_fixtures import create_location_tree
 
 pytestmark = pytest.mark.integration
+
+B6_REVISION = "20261102_0002"
+
+
+def _before_b6(cfg: Config) -> str:
+    """Revisión inmediatamente anterior a B6 (robusto ante migraciones nuevas)."""
+    revision = ScriptDirectory.from_config(cfg).get_revision(B6_REVISION)
+    assert revision is not None
+    down = revision.down_revision
+    assert isinstance(down, str)
+    return down
 
 
 def _exists(url: str, name: str) -> bool:
@@ -155,7 +167,7 @@ async def test_b6_objects_round_trip(
             _constraint_def(test_database_url, "box_movements", "ck_box_movements_type") or ""
         )
 
-        command.downgrade(alembic_config, "-1")
+        command.downgrade(alembic_config, _before_b6(alembic_config))
 
         objects_after_downgrade = {
             "table: box_location_history": _exists(test_database_url, "box_location_history"),
@@ -195,29 +207,32 @@ async def test_b6_downgrade_rejects_incompatible_data(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     command.upgrade(alembic_config, "head")
-    tree = await create_location_tree(session_factory)
 
-    async with session_factory() as session:
-        await session.execute(
-            update(Box)
-            .where(Box.id == tree.box_ids[0])
-            .values(
-                custody_status="PENDING_VERIFICATION",
-                current_position_id=tree.position_ids[0],
+    try:
+        tree = await create_location_tree(session_factory)
+
+        async with session_factory() as session:
+            await session.execute(
+                update(Box)
+                .where(Box.id == tree.box_ids[0])
+                .values(
+                    custody_status="PENDING_VERIFICATION",
+                    current_position_id=tree.position_ids[0],
+                )
             )
-        )
-        await session.commit()
+            await session.commit()
 
-    with pytest.raises(DBAPIError):
-        command.downgrade(alembic_config, "-1")
+        with pytest.raises(DBAPIError):
+            command.downgrade(alembic_config, _before_b6(alembic_config))
 
-    async with session_factory() as session:
-        await session.execute(
-            update(Box)
-            .where(Box.id == tree.box_ids[0])
-            .values(custody_status="UNKNOWN", current_position_id=None)
-        )
-        await session.commit()
+        async with session_factory() as session:
+            await session.execute(
+                update(Box)
+                .where(Box.id == tree.box_ids[0])
+                .values(custody_status="UNKNOWN", current_position_id=None)
+            )
+            await session.commit()
+    finally:
+        command.upgrade(alembic_config, "head")
 
-    command.upgrade(alembic_config, "head")
     assert _exists(test_database_url, "box_location_history")
